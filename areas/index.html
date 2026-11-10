@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>Cálculo de áreas · Ferramentas</title>
+<meta name="description" content="Cálculo de áreas: matrícula, áreas subtraídas, parcelas certificadas e áreas levantadas, com texto pronto para copiar.">
+<link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&family=Schibsted+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/comum.css">
+<script src="../assets/comum.js"></script>
+<style>
+main.wrap { padding-top: 22px; padding-bottom: 8px; }
+section { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; margin-bottom: 16px; overflow: hidden; }
+section > h2 { margin: 0; padding: 10px 14px; font-size: 15px; font-weight: 600; background: var(--surface-2);
+  border-bottom: 1px solid var(--line); border-left: 4px solid var(--mark); }
+.scroll { overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; }
+th { text-align: left; font-weight: 600; font-size: 13px; padding: 8px 10px; color: var(--muted);
+  background: var(--surface-2); border-bottom: 1px solid var(--line); white-space: nowrap; }
+td { padding: 3px 4px; border-bottom: 1px solid var(--line-soft); }
+td input { width: 100%; min-width: 90px; padding: 7px 9px; font: inherit; color: var(--ink);
+  background: transparent; border: 1px solid transparent; border-radius: 4px; }
+td input:hover { border-color: var(--line-strong); }
+td input:focus { outline: 2px solid var(--mark); background: var(--surface); }
+td.num { width: 130px; }
+td.num input { text-align: right; min-width: 0; font-family: var(--mono); font-size: 14px; }
+th.num { width: 130px; }
+td.del { width: 36px; text-align: center; }
+button.add, button.x { font: inherit; cursor: pointer; border-radius: 6px; }
+button.add { margin: 8px 12px; padding: 5px 12px; background: transparent; color: var(--accent-text); border: 1px solid var(--accent-text); }
+button.add:hover { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+button.x { border: none; background: transparent; color: var(--muted); font-size: 1.1rem; padding: 2px 8px; }
+button.x:hover { color: var(--danger); }
+select { color: var(--ink); background: var(--surface); border: 1px solid var(--line-strong); border-radius: 6px; padding: 5px 8px; }
+.bar { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; padding: 12px 14px; border-bottom: 1px solid var(--line); }
+.bar label { display: flex; gap: 6px; align-items: center; color: var(--muted); }
+.bar input[type="checkbox"] { accent-color: var(--accent); }
+pre { margin: 0; padding: 14px 16px; white-space: pre-wrap; word-break: break-word;
+  font: 14px/1.55 var(--mono); }
+.calc .diff { text-align: center; padding: 10px 14px; font-weight: 600; background: var(--surface-2); border-bottom: 1px solid var(--line); }
+.calc .diff.zero { color: var(--ok); background: var(--ok-wash); }
+.calc .diff.warn { color: var(--warn); background: var(--warn-wash); }
+.calc table { font-variant-numeric: tabular-nums; }
+.calc th { color: var(--muted); text-align: right; }
+.calc th:first-child, .calc td:first-child { text-align: left; }
+.calc td { padding: 8px 10px; text-align: right; white-space: nowrap; }
+.calc td:first-child { white-space: normal; }
+.calc tr.tot td { font-weight: 600; background: var(--surface-2); }
+.calc small { display: block; color: var(--muted); font-weight: 400; }
+.toast { color: var(--ok); font-size: 13px; }
+</style>
+</head>
+<body>
+<header class="top">
+  <div class="wrap">
+    <nav class="crumbs" aria-label="Navegação">
+      <a href="../">← Todas as ferramentas</a>
+      <button type="button" class="btn light small" id="themeBtn">Tema</button>
+    </nav>
+    <div class="top-main">
+      <div>
+        <h1>Cálculo de áreas</h1>
+        <p class="lead">Preencha as tabelas, o resultado é atualizado na hora. Use vírgula ou ponto como separador decimal.</p>
+      </div>
+    </div>
+  </div>
+</header>
+
+<main class="wrap">
+  <div id="tables"></div>
+
+  <section>
+    <h2>Resultado para copiar</h2>
+    <div class="bar">
+      <button class="btn primary" id="copy">Copiar resultado</button>
+      <button class="btn ghost" id="clear">Limpar tudo</button>
+      <label><input type="checkbox" id="extra" checked> Incluir m² e alqueire no texto</label>
+      <label>Alqueire:
+        <select id="alq">
+          <option value="48400" selected>4,84 ha (geométrico / mineiro)</option>
+          <option value="24200">2,42 ha (paulista)</option>
+        </select>
+      </label>
+      <span class="toast" id="toast" role="status" aria-live="polite"></span>
+    </div>
+    <pre id="out"></pre>
+  </section>
+
+  <section>
+    <h2>Visualização do cálculo</h2>
+    <div class="calc" id="calc"></div>
+  </section>
+</main>
+
+<footer class="site-foot wrap">
+  <a href="../">← Voltar para todas as ferramentas</a>
+</footer>
+
+<script>
+
+const CONFIG = [
+  { key: 'mat', title: 'Matrícula(s)',
+    cols: [['Matrícula(s)', 'text'], ['Área (ha)', 'num']] },
+  { key: 'sub', title: 'Áreas subtraídas da matrícula',
+    cols: [['Nome da área', 'text'], ['Área (ha)', 'num']] },
+  { key: 'cert', title: 'Certificação',
+    cols: [['Parcela', 'text'], ['Área (SGL)', 'num'], ['Perímetro (m)', 'num'], ['Código de Certificação', 'text']] },
+  { key: 'lev', title: 'Áreas levantadas (exceto as parcelas)',
+    cols: [['Nome da área', 'text'], ['Área (ha)', 'num']] }
+];
+
+const EXEMPLO = {
+  mat: [['33.217', '410,0000']],
+  sub: [
+    ['Averbação nº 06/33.217 - Área "H-1"', '2,5703'],
+    ['Averbação nº 07/33.217 - Área "G"', '4,9990'],
+    ['Averbação nº 08/33.217 - Área "H-2"', '5,8069'],
+    ['Registro nº 09/33.217 - Imissão Provisória de Posse', '4,8584'],
+    ['Averbação nº 10/33.217 - Desapropriação em favor da União', '0,3049']
+  ],
+  cert: [
+    ['parcela 01', '143,4241', '6.182,12', '407de6c0-3b7c-485c-a2cf-dcd7ba2cea0f'],
+    ['parcela 02', '64,1739', '4.325,49', 'd9b09c92-a2ed-40b7-8b4c-8b7804059c9a'],
+    ['parcela 03', '23,4225', '2.170,47', 'f6d06f45-5f4c-4d66-9438-689458280093'],
+    ['parcela 04', '146,3771', '6.680,97', '8225cfb8-cf34-4350-8878-72dafc677709']
+  ],
+  lev: [['Estrada Municipal', '4,2173']]
+};
+
+const data = {};
+CONFIG.forEach(c => data[c.key] = []);
+
+/* ---------- números ---------- */
+function parse(v) {
+  v = String(v || '').trim().replace(/\s/g, '');
+  if (!v) return 0;
+  if (v.includes(',')) v = v.replace(/\./g, '').replace(',', '.');
+  const n = parseFloat(v);
+  return isNaN(n) ? 0 : n;
+}
+const fmt = (n, d) => n.toLocaleString('pt-BR', { minimumFractionDigits: d, maximumFractionDigits: d });
+const ha = n => fmt(n, 4);
+const m2 = n => fmt(Math.round(n * 10000), 0); // 4 casas em ha = 1 m²
+const alqM2 = () => +document.getElementById('alq').value;
+const alqNome = () => 'alq. de ' + fmt(alqM2() / 10000, 2) + ' ha';
+const alq = n => fmt(n * 10000 / alqM2(), 4);
+const cap = s => s.charAt(0).toUpperCase() + s.slice(1);
+
+/* ---------- tabelas de entrada ---------- */
+function newRow(key) {
+  const n = CONFIG.find(c => c.key === key).cols.length;
+  const row = Array(n).fill('');
+  if (key === 'cert') row[0] = 'parcela ' + String(data.cert.length + 1).padStart(2, '0');
+  return row;
+}
+
+function build() {
+  const wrap = document.getElementById('tables');
+  wrap.innerHTML = '';
+  CONFIG.forEach(c => {
+    const sec = document.createElement('section');
+    sec.innerHTML = `<h2>${c.title}</h2><div class="scroll"><table><thead><tr>` +
+      c.cols.map(x => `<th${x[1] === 'num' ? ' class="num"' : ''}>${x[0]}</th>`).join('') + `<th></th></tr></thead><tbody></tbody></table></div>`;
+    const tbody = sec.querySelector('tbody');
+    data[c.key].forEach((row, i) => {
+      const tr = document.createElement('tr');
+      row.forEach((val, j) => {
+        const td = document.createElement('td');
+        if (c.cols[j][1] === 'num') td.className = 'num';
+        const inp = document.createElement('input');
+        inp.value = val;
+        inp.setAttribute('aria-label', c.cols[j][0]);
+        if (c.cols[j][1] === 'num') inp.inputMode = 'decimal';
+        inp.addEventListener('input', () => { data[c.key][i][j] = inp.value; update(); });
+        td.appendChild(inp);
+        tr.appendChild(td);
+      });
+      const td = document.createElement('td');
+      td.className = 'del';
+      td.innerHTML = '<button class="x" title="Remover linha" aria-label="Remover linha">×</button>';
+      td.firstChild.addEventListener('click', () => { data[c.key].splice(i, 1); build(); update(); });
+      tr.appendChild(td);
+      tbody.appendChild(tr);
+    });
+    const add = document.createElement('button');
+    add.className = 'add';
+    add.textContent = '+ Adicionar';
+    add.addEventListener('click', () => {
+      data[c.key].push(newRow(c.key));
+      build(); update();
+      const inputs = document.querySelectorAll('section')[CONFIG.indexOf(c)].querySelectorAll('tbody tr:last-child input');
+      if (inputs[0]) inputs[0].focus();
+    });
+    sec.appendChild(add);
+    wrap.appendChild(sec);
+  });
+}
+
+/* ---------- cálculo ---------- */
+function compute() {
+  const rows = k => data[k].filter(r => r.some(v => String(v).trim() !== ''));
+  const mat = rows('mat'), sub = rows('sub'), cert = rows('cert'), lev = rows('lev');
+  const r4 = x => Math.round(x * 10000) / 10000;
+  const sum = (arr, i) => r4(arr.reduce((s, r) => s + parse(r[i]), 0));
+
+  const registrada = sum(mat, 1);
+  const subtraidas = sum(sub, 1);
+  const remanescente = r4(registrada - subtraidas);       // =SOMA(Coluna E - Coluna I)
+  const certificada = sum(cert, 1);                   // Coluna M
+  const extra = sum(lev, 1);                          // Coluna R
+  const levantada = r4(certificada + extra);
+
+  const diffHa = r4(Math.abs(remanescente - levantada));
+  const diffPerc = remanescente === 0 ? 0 : Math.round((diffHa / remanescente) * 10000) / 100;
+  const zero = diffHa === 0;
+  const sentido = zero ? 'Sem divergência'
+    : remanescente > levantada ? 'Diferença a menor de ' : 'Diferença a maior de ';
+
+  return { mat, sub, cert, lev, registrada, subtraidas, remanescente, certificada, extra, levantada,
+    diffHa, diffPerc, zero, sentido,
+    perCert: Math.round(cert.reduce((s, r) => s + parse(r[2]), 0) * 100) / 100,
+    vazio: !mat.length && !cert.length && !lev.length };
+}
+
+function text(c, extra) {
+  const val = n => ha(n) + ' ha' + (extra ? ` | ${m2(n)} m² | ${alq(n)} ${alqNome()}` : '');
+  const per = n => n > 0 ? ` | Perímetro: ${fmt(n, 2)} m` : '';
+  const L = [];
+  if (c.mat.length > 1) {
+    c.mat.forEach(r => L.push(`Matrícula ${r[0] || '?'}: ${val(parse(r[1]))}`));
+    L.push('');
+  }
+  L.push(`Área Registrada: ${val(c.registrada)}`, '');
+  c.sub.forEach(r => L.push(`- ${r[0] || 'Sem nome'}: ${val(parse(r[1]))}`));
+  L.push(`= Área Remanescente registrada: ${val(c.remanescente)}`, '');
+  L.push('Áreas levantadas:');
+  c.cert.forEach(r => L.push(`+ ${cap(r[0] || 'Parcela')}: ${val(parse(r[1]))}${per(parse(r[2]))}`));
+  c.lev.forEach(r => L.push(`+ ${r[0] || 'Sem nome'}: ${val(parse(r[1]))}`));
+  L.push(`= Área Total Levantada: ${val(c.levantada)}`, '');
+  L.push(`Total de Área a ser Registrada: ${val(c.certificada)}${per(c.perCert)}`);
+  L.push(c.zero ? c.sentido : `${c.sentido}${val(c.diffHa)} ou ${fmt(c.diffPerc, 2)}%`);
+  return L.join('\n');
+}
+
+function visual(c) {
+  const row = (nome, dica, n, per, tot) =>
+    `<tr${tot ? ' class="tot"' : ''}><td>${nome}<small>${dica}</small></td><td>${ha(n)}</td><td>${m2(n)}</td><td>${alq(n)}</td><td>${per === null ? '–' : fmt(per, 2)}</td></tr>`;
+  const msg = c.zero ? c.sentido : `${c.sentido}${ha(c.diffHa)} ha (${fmt(c.diffPerc, 2)}%)`;
+  return `<div class="diff ${c.zero ? 'zero' : 'warn'}">${msg}</div>
+  <div class="scroll"><table>
+    <thead><tr><th></th><th>ha</th><th>m²</th><th>${alqNome()}</th><th>Perímetro (m)</th></tr></thead>
+    <tbody>
+      ${row('Área da matrícula', 'inicial', c.registrada, null)}
+      ${row('Remanescente registrada', 'matrícula − subtraídas', c.remanescente, null)}
+      ${row('Para certificação', 'soma das parcelas', c.certificada, c.perCert)}
+      ${row('Excluídas', 'faixas de domínio e estradas', c.extra, null)}
+      ${row('Total levantado', 'certificação + excluídas', c.levantada, null, true)}
+    </tbody>
+  </table></div>`;
+}
+
+function update() {
+  const c = compute();
+  document.getElementById('out').textContent = c.vazio ? 'Preencha as tabelas para ver o resultado.'
+    : text(c, document.getElementById('extra').checked);
+  document.getElementById('calc').innerHTML = visual(c);
+}
+
+/* ---------- ações ---------- */
+function toast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  setTimeout(() => t.textContent = '', 2500);
+}
+document.getElementById('copy').addEventListener('click', async () => {
+  const txt = document.getElementById('out').textContent;
+  try {
+    await navigator.clipboard.writeText(txt);
+  } catch (e) {
+    const ta = document.createElement('textarea');
+    ta.value = txt; document.body.appendChild(ta); ta.select();
+    document.execCommand('copy'); ta.remove();
+  }
+  toast('Resultado copiado');
+});
+document.getElementById('clear').addEventListener('click', () => {
+  CONFIG.forEach(c => data[c.key] = [newRow(c.key)]);
+  build(); update();
+});
+document.getElementById('extra').addEventListener('change', update);
+document.getElementById('alq').addEventListener('change', update);
+
+CONFIG.forEach(c => data[c.key] = EXEMPLO[c.key].map(r => r.slice()));
+build(); update();
+</script>
+</body>
+</html>

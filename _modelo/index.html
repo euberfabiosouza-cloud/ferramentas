@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>Nome da ferramenta · Ferramentas</title>
+<meta name="description" content="Uma frase dizendo o que a ferramenta faz.">
+<link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&family=Schibsted+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/comum.css">
+<script src="../assets/comum.js"></script>
+<style>
+/* Só o que é específico desta ferramenta. Use as variáveis de comum.css
+   (var(--surface), var(--ink), var(--line), var(--accent)...) e nunca cores fixas,
+   para o tema escuro continuar funcionando. */
+main.wrap { padding-top: 24px; }
+.panel { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 18px; }
+.panel h2 { margin: 0 0 12px; font-size: 16px; }
+</style>
+</head>
+<body>
+
+<header class="top">
+  <div class="wrap">
+    <nav class="crumbs" aria-label="Navegação">
+      <a href="../">← Todas as ferramentas</a>
+      <button type="button" class="btn light small" id="themeBtn">Tema</button>
+    </nav>
+    <div class="top-main">
+      <div>
+        <h1>Nome da ferramenta</h1>
+        <p class="lead">Uma ou duas frases explicando o que ela faz e como usar.</p>
+      </div>
+    </div>
+  </div>
+</header>
+
+<main class="wrap">
+  <section class="panel">
+    <h2>Comece por aqui</h2>
+    <p>Conteúdo da ferramenta.</p>
+    <button class="btn primary" type="button" id="acao">Ação principal</button>
+    <button class="btn ghost" type="button">Ação secundária</button>
+  </section>
+</main>
+
+<footer class="site-foot wrap">
+  <a href="../">← Voltar para todas as ferramentas</a>
+</footer>
+
+<script>
+document.getElementById('acao').addEventListener('click', function () {
+  alert('Funciona!');
+});
+</script>
+</body>
+</html>

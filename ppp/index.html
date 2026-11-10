@@ -1,0 +1,571 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>Ajuste PPP · Ferramentas</title>
+<meta name="description" content="Ajuste PPP: corrige pontos coletados com NTRIP usando a coordenada PPP-IBGE da base. Roda no navegador.">
+<link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&family=Schibsted+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/comum.css">
+<script src="../assets/comum.js"></script>
+<style>
+*, *::before, *::after { box-sizing: border-box; }
+main.wrap { padding-top: 24px; padding-bottom: 40px; max-width: 1280px; }
+
+
+.layout { display: grid; grid-template-columns: 380px minmax(0, 1fr); gap: 20px; align-items: start; }
+@media (max-width: 920px) { .layout { grid-template-columns: 1fr; } }
+
+.panel { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 18px; }
+.panel + .panel { margin-top: 16px; }
+.panel h2 { margin: 0 0 12px; font-size: 16px; font-weight: 600; display: flex; gap: 10px; align-items: baseline; }
+.panel h2 .n {
+  font: 500 13px var(--mono); color: var(--accent-text); background: var(--accent-wash);
+  border-radius: 4px; padding: 1px 7px;
+}
+
+label { display: block; font-size: 13px; color: var(--ink-soft); margin: 0 0 4px; }
+.field { margin-bottom: 12px; }
+.row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.row3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+
+select, input[type="text"] {
+  width: 100%; height: 38px; padding: 0 10px;
+  font: 400 14px var(--sans); color: var(--ink);
+  background: var(--surface); border: 1px solid var(--line); border-radius: 6px;
+}
+input.num { font-family: var(--mono); font-size: 13.5px; }
+select, input[type="text"] { border-color: var(--line-strong); }
+select:focus-visible, input:focus-visible, .drop:focus-visible {
+  outline: 2px solid var(--mark); outline-offset: 1px;
+}
+
+.drop {
+  display: block; text-align: center; cursor: pointer;
+  border: 1.5px dashed var(--line); border-radius: 8px;
+  padding: 18px 12px; color: var(--ink-soft); transition: background .15s, border-color .15s;
+}
+.drop:hover, .drop.over { border-color: var(--mark); background: var(--accent-wash); color: var(--ink); }
+.drop strong { color: var(--ink); font-weight: 500; display: block; }
+.drop small { display: block; margin-top: 2px; }
+.drop input { display: none; }
+
+.check { display: flex; align-items: center; gap: 8px; font-size: 14px; color: var(--ink); margin: 0 0 12px; }
+.check input { width: 16px; height: 16px; accent-color: var(--accent); }
+
+.delta {
+  margin-top: 4px; border: 1px solid var(--line); border-radius: 6px; overflow: hidden;
+  font-family: var(--mono); font-size: 13px;
+}
+.delta div { display: grid; grid-template-columns: 70px 1fr 1fr; padding: 6px 10px; gap: 8px; }
+.delta div + div { border-top: 1px solid var(--line); }
+.delta .h { color: var(--ink-soft); font-family: var(--sans); font-size: 12.5px; background: var(--surface-2); }
+.delta .res { background: var(--ok-wash); font-weight: 500; }
+.delta span:nth-child(n+2) { text-align: right; }
+
+.actions { display: grid; gap: 8px; }
+.actions .btn { height: 40px; }
+
+.msg { font-size: 13.5px; border-radius: 6px; padding: 8px 10px; margin-top: 10px; }
+.msg.warn { background: var(--warn-wash); color: var(--warn); }
+.msg.err { background: var(--danger-wash); color: var(--danger-deep); }
+.msg.ok { background: var(--ok-wash); color: var(--ink); }
+.msg:empty { display: none; }
+
+.summary { display: flex; flex-wrap: wrap; gap: 6px 22px; margin: 0 0 12px; font-size: 14px; color: var(--ink-soft); }
+.summary b { color: var(--ink); font-weight: 500; }
+
+.tablewrap { overflow: auto; max-height: 72vh; border: 1px solid var(--line); border-radius: 6px; }
+table { border-collapse: collapse; width: 100%; font: 400 13px var(--mono); white-space: nowrap; }
+th, td { padding: 6px 10px; text-align: right; border-bottom: 1px solid var(--line); }
+th { position: sticky; top: 0; background: var(--surface-2); font: 500 12.5px var(--sans); color: var(--ink-soft); z-index: 1; }
+th:nth-child(-n+2), td:nth-child(-n+2) { text-align: left; }
+td.corr { background: var(--ok-wash); }
+tr.base td { background: var(--hl); }
+tr.base td.corr { background: var(--hl); font-weight: 500; }
+.empty { padding: 48px 20px; text-align: center; color: var(--ink-soft); }
+.foot { margin-top: 12px; font-size: 13px; color: var(--ink-soft); }
+.privacy { margin-top: 20px; font-size: 13px; color: var(--ink-soft); }
+</style>
+</head>
+<body>
+<header class="top">
+  <div class="wrap">
+    <nav class="crumbs" aria-label="Navegação">
+      <a href="../">← Todas as ferramentas</a>
+      <button type="button" class="btn light small" id="themeBtn">Tema</button>
+    </nav>
+    <div class="top-main">
+      <div>
+        <h1>Ajuste PPP</h1>
+        <p class="lead">Corrige os pontos coletados com NTRIP somando a diferença entre a coordenada PPP-IBGE da base e a coordenada observada dela. Tudo roda no navegador, sem enviar nem guardar nada.</p>
+      </div>
+    </div>
+  </div>
+</header>
+
+<main class="wrap">
+  <div class="layout">
+    <div>
+      <section class="panel" aria-labelledby="h1">
+        <h2 id="h1"><span class="n">1</span>Arquivo da coletora</h2>
+        <div class="row">
+          <div class="field">
+            <label for="model">Modelo</label>
+            <select id="model">
+              <option value="l8">Landstar 8</option>
+              <option value="l7">Landstar 7</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="sep">Separador do CSV</label>
+            <select id="sep">
+              <option value="auto">Detectar</option>
+              <option value=",">Vírgula ( , )</option>
+              <option value=";">Ponto e vírgula ( ; )</option>
+              <option value="&#9;">Tabulação</option>
+              <option value="|">Barra vertical ( | )</option>
+            </select>
+          </div>
+        </div>
+        <label class="drop" id="drop" tabindex="0">
+          <input type="file" id="file" accept=".csv,.txt,text/csv,text/plain">
+          <strong id="dropTitle">Escolher o arquivo .csv</strong>
+          <small id="dropSub">ou arraste e solte aqui</small>
+        </label>
+        <div class="msg" id="msgFile" role="status" aria-live="polite"></div>
+      </section>
+
+      <section class="panel" aria-labelledby="h2">
+        <h2 id="h2"><span class="n">2</span>Base e referência PPP</h2>
+        <div class="field">
+          <label for="base">Ponto da base</label>
+          <select id="base" disabled><option value="">Importe o arquivo primeiro</option></select>
+        </div>
+        <label>Coordenadas de referência (PPP-IBGE)</label>
+        <div class="row3 field">
+          <input class="num" type="text" id="refN" inputmode="decimal" placeholder="Norte (N)" aria-label="Norte (N) de referência" autocomplete="off">
+          <input class="num" type="text" id="refE" inputmode="decimal" placeholder="Leste (E)" aria-label="Leste (E) de referência" autocomplete="off">
+          <input class="num" type="text" id="refH" inputmode="decimal" placeholder="h" aria-label="Altitude elipsoidal (h) de referência" autocomplete="off">
+        </div>
+        <div class="delta" aria-live="polite">
+          <div class="h"><span></span><span>N</span><span>E</span><span>h</span></div>
+          <div><span>Observada</span><span id="oN">–</span><span id="oE">–</span><span id="oH">–</span></div>
+          <div class="res"><span>Correção</span><span id="dN">–</span><span id="dE">–</span><span id="dH">–</span></div>
+        </div>
+        <div class="msg" id="msgBase" role="status" aria-live="polite"></div>
+      </section>
+
+      <section class="panel" aria-labelledby="h3">
+        <h2 id="h3"><span class="n">3</span>Exportar</h2>
+        <div class="row">
+          <div class="field">
+            <label for="dec">Separador decimal</label>
+            <select id="dec">
+              <option value=",">Vírgula (1234,567)</option>
+              <option value=".">Ponto (1234.567)</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="enc">Codificação</label>
+            <select id="enc">
+              <option value="ansi">ANSI (Windows-1252)</option>
+              <option value="utf8">UTF-8</option>
+            </select>
+          </div>
+        </div>
+        <label class="check"><input type="checkbox" id="hdr" checked> Incluir linha de cabeçalho</label>
+        <div class="actions">
+          <button class="btn primary" id="btnCorr" disabled>Baixar pontos corrigidos (.txt)</button>
+          <button class="btn ghost" id="btnRaw" disabled>Baixar pontos brutos (.txt)</button>
+        </div>
+        <p class="foot">Colunas separadas por tabulação: Nome, Código, N, E, h, erro X, erro Y, erro vertical e solução.</p>
+      </section>
+    </div>
+
+    <section class="panel" aria-labelledby="h4">
+      <h2 id="h4">Conferência</h2>
+      <div class="summary" id="summary"></div>
+      <div class="tablewrap" id="tableBox">
+        <div class="empty">Os pontos aparecem aqui depois que você importar o arquivo.</div>
+      </div>
+      <p class="foot">A base fica destacada. As colunas coloridas mostram a coordenada já corrigida.</p>
+    </section>
+  </div>
+
+  <p class="privacy">O arquivo é lido apenas na memória do navegador. Ao fechar ou recarregar a página, nada fica salvo.</p>
+</main>
+
+<footer class="site-foot wrap">
+  <a href="../">← Voltar para todas as ferramentas</a>
+</footer>
+
+<script>
+// CORE-START
+const MODELS = {
+  l7: { label: 'Landstar 7', cols: { time: 'Horário Inicial', nome: 'Nome', cod: 'Código', n: 'n', e: 'e', h: 'h',
+        sx: 'Precisão X', sy: 'Precisão Y', sv: 'Erro Vertical', sol: 'Solução' } },
+  l8: { label: 'Landstar 8', cols: { time: 'Tempo inicial', nome: 'Nome', cod: 'Código', n: 'Norte(N)', e: 'Leste(E)', h: 'H',
+        sx: 'Erro X', sy: 'Erro Y', sv: 'Erro vertical', sol: 'Solução' } }
+};
+const OUT_KEYS = ['nome', 'cod', 'n', 'e', 'h', 'sx', 'sy', 'sv', 'sol'];
+const NUM_KEYS = ['n', 'e', 'h', 'sx', 'sy', 'sv'];
+
+const norm = s => String(s == null ? '' : s).replace(/^\uFEFF/, '').trim().toLowerCase();
+
+function detectSep(text) {
+  const line = text.split(/\r?\n/).find(l => l.trim()) || '';
+  const c = { ',': 0, ';': 0, '\t': 0, '|': 0 };
+  let q = false;
+  for (const ch of line) {
+    if (ch === '"') q = !q;
+    else if (!q && Object.prototype.hasOwnProperty.call(c, ch)) c[ch]++;
+  }
+  let best = ',', max = -1;
+  for (const k of Object.keys(c)) if (c[k] > max) { max = c[k]; best = k; }
+  return max > 0 ? best : null;
+}
+
+function parseCSV(text, sep) {
+  const rows = [];
+  let row = [], cell = '', q = false;
+  for (let i = 0; i < text.length; i++) {
+    const ch = text[i];
+    if (q) {
+      if (ch === '"') {
+        if (text[i + 1] === '"') { cell += '"'; i++; } else q = false;
+      } else cell += ch;
+    } else if (ch === '"') q = true;
+    else if (ch === sep) { row.push(cell); cell = ''; }
+    else if (ch === '\n' || ch === '\r') {
+      if (ch === '\r' && text[i + 1] === '\n') i++;
+      row.push(cell); cell = '';
+      if (row.some(v => v.trim() !== '')) rows.push(row);
+      row = [];
+    } else cell += ch;
+  }
+  row.push(cell);
+  if (row.some(v => v.trim() !== '')) rows.push(row);
+  return rows;
+}
+
+function detectModel(header) {
+  const h = new Set(header.map(norm));
+  if (h.has('norte(n)')) return 'l8';
+  if (h.has('precisão x') || h.has('precisao x')) return 'l7';
+  return null;
+}
+
+function mapColumns(header, modelKey) {
+  const names = header.map(norm);
+  const map = {};
+  for (const [k, label] of Object.entries(MODELS[modelKey].cols)) map[k] = names.indexOf(norm(label));
+  return map;
+}
+
+function parseNum(s) {
+  s = String(s == null ? '' : s).trim().replace(/\s/g, '');
+  if (!s) return NaN;
+  const lc = s.lastIndexOf(','), ld = s.lastIndexOf('.');
+  if (lc > -1 && ld > -1) s = lc > ld ? s.replace(/\./g, '').replace(',', '.') : s.replace(/,/g, '');
+  else if (lc > -1) s = s.replace(',', '.');
+  return /^[-+]?(\d+\.?\d*|\.\d+)$/.test(s) ? parseFloat(s) : NaN;
+}
+
+function decimalsOf(s) {
+  const m = String(s).trim().match(/[.,](\d+)$/);
+  return m ? m[1].length : 0;
+}
+
+function fmt(v, dec, decSep) {
+  const t = v.toFixed(dec);
+  return decSep === ',' ? t.replace('.', ',') : t;
+}
+
+function swapDecimal(s, decSep) {
+  const t = String(s == null ? '' : s).trim();
+  if (!isFinite(parseNum(t))) return t;
+  const dot = t.replace(',', '.');
+  return decSep === ',' ? dot.replace('.', ',') : dot;
+}
+
+function buildPoints(rows, map) {
+  const get = (r, k) => (map[k] >= 0 && map[k] < r.length ? String(r[map[k]]).trim() : '');
+  return rows.slice(1).map(r => {
+    const p = { time: get(r, 'time') };
+    for (const k of OUT_KEYS) p[k] = get(r, k);
+    return p;
+  });
+}
+
+function findBase(points, name) {
+  return points.find(p => p.nome === name) || null;
+}
+
+function computeDelta(base, ref) {
+  if (!base) return null;
+  const o = { n: parseNum(base.n), e: parseNum(base.e), h: parseNum(base.h) };
+  const d = { n: ref.n - o.n, e: ref.e - o.e, h: ref.h - o.h };
+  if (![o.n, o.e, o.h, d.n, d.e, d.h].every(isFinite)) return null;
+  return { obs: o, d };
+}
+
+function correctPoint(p, d, decSep) {
+  const out = {};
+  for (const k of ['n', 'e', 'h']) {
+    const v = parseNum(p[k]);
+    out[k] = isFinite(v) ? fmt(v + d[k], Math.max(3, decimalsOf(p[k])), decSep) : '';
+  }
+  return out;
+}
+
+function exportLines(points, modelKey, kind, opts) {
+  const { decSep, header, delta } = opts;
+  const lines = [];
+  if (header) lines.push(OUT_KEYS.map(k => MODELS[modelKey].cols[k]).join('\t'));
+  for (const p of points) {
+    const row = {};
+    for (const k of OUT_KEYS) row[k] = NUM_KEYS.includes(k) ? swapDecimal(p[k], decSep) : p[k];
+    if (kind === 'corr') Object.assign(row, correctPoint(p, delta.d, decSep));
+    lines.push(OUT_KEYS.map(k => row[k]).join('\t'));
+  }
+  return lines.join('\r\n');
+}
+
+function encodeText(text, enc) {
+  if (enc === 'utf8') return new TextEncoder().encode(text);
+  const out = new Uint8Array(text.length);
+  for (let i = 0; i < text.length; i++) {
+    const c = text.charCodeAt(i);
+    out[i] = c < 256 ? c : 63;
+  }
+  return out;
+}
+// CORE-END
+
+// ---------- Interface ----------
+const $ = id => document.getElementById(id);
+const state = { text: '', fileName: '', rows: [], modelKey: 'l8', map: null, points: [], delta: null };
+
+function setMsg(id, text, cls) {
+  const el = $(id);
+  el.textContent = text || '';
+  el.className = 'msg' + (cls ? ' ' + cls : '');
+}
+
+function decodeBuffer(buf) {
+  try { return new TextDecoder('utf-8', { fatal: true }).decode(buf); }
+  catch (e) { return new TextDecoder('windows-1252').decode(buf); }
+}
+
+function loadFile(file) {
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = () => {
+    state.text = decodeBuffer(reader.result);
+    state.fileName = file.name;
+    $('dropTitle').textContent = file.name;
+    $('dropSub').textContent = 'Clique para trocar o arquivo';
+    parseCurrent(true);
+  };
+  reader.onerror = () => setMsg('msgFile', 'Não foi possível ler o arquivo.', 'err');
+  reader.readAsArrayBuffer(file);
+}
+
+function parseCurrent(autoModel) {
+  setMsg('msgFile', '');
+  if (!state.text) return;
+  let sep = $('sep').value;
+  if (sep === 'auto') {
+    sep = detectSep(state.text);
+    if (!sep) { resetData(); return setMsg('msgFile', 'Não encontrei um separador de colunas. Escolha um na lista.', 'err'); }
+  }
+  const rows = parseCSV(state.text, sep);
+  if (rows.length < 2) { resetData(); return setMsg('msgFile', 'O arquivo não tem linhas de dados.', 'err'); }
+  state.rows = rows;
+
+  if (autoModel) {
+    const m = detectModel(rows[0]);
+    if (m) $('model').value = m;
+  }
+  state.modelKey = $('model').value;
+  state.map = mapColumns(rows[0], state.modelKey);
+
+  const missing = ['nome', 'n', 'e', 'h'].filter(k => state.map[k] < 0)
+    .map(k => MODELS[state.modelKey].cols[k]);
+  if (missing.length) {
+    state.points = [];
+    refreshBaseList();
+    render();
+    return setMsg('msgFile', 'Colunas não encontradas para o ' + MODELS[state.modelKey].label + ': ' + missing.join(', ') + '. Confira o modelo e o separador.', 'err');
+  }
+  state.points = buildPoints(rows, state.map);
+  setMsg('msgFile', state.points.length + ' pontos lidos.', 'ok');
+  refreshBaseList();
+  recompute();
+}
+
+function resetData() {
+  state.rows = []; state.points = []; state.delta = null;
+  refreshBaseList(); render();
+}
+
+function refreshBaseList() {
+  const sel = $('base');
+  const prev = sel.value;
+  sel.innerHTML = '';
+  if (!state.points.length) {
+    sel.disabled = true;
+    sel.innerHTML = '<option value="">Importe o arquivo primeiro</option>';
+    return;
+  }
+  const seen = new Set();
+  const first = document.createElement('option');
+  first.value = ''; first.textContent = 'Selecione a base';
+  sel.appendChild(first);
+  for (const p of state.points) {
+    if (!p.nome || seen.has(p.nome)) continue;
+    seen.add(p.nome);
+    const o = document.createElement('option');
+    o.value = p.nome;
+    o.textContent = p.time ? p.nome + ' (' + p.time.slice(0, 10) + ')' : p.nome;
+    sel.appendChild(o);
+  }
+  sel.disabled = false;
+  if (prev && seen.has(prev)) sel.value = prev;
+  else {
+    const guess = [...seen].find(n => /^b[_\-]/i.test(n));
+    if (guess) sel.value = guess;
+  }
+}
+
+function readRef() {
+  return { n: parseNum($('refN').value), e: parseNum($('refE').value), h: parseNum($('refH').value) };
+}
+
+function recompute() {
+  const base = findBase(state.points, $('base').value);
+  const ref = readRef();
+  state.delta = null;
+  let obsTxt = ['–', '–', '–'], dTxt = ['–', '–', '–'];
+
+  if (base) {
+    obsTxt = [base.n, base.e, base.h].map(v => swapDecimal(v, ','));
+    const dup = state.points.filter(p => p.nome === base.nome).length;
+    if (!isFinite(parseNum(base.n)) || !isFinite(parseNum(base.e)) || !isFinite(parseNum(base.h)))
+      setMsg('msgBase', 'A base escolhida não tem coordenadas numéricas.', 'err');
+    else if (!isFinite(ref.n) || !isFinite(ref.e) || !isFinite(ref.h))
+      setMsg('msgBase', 'Informe N, E e h de referência (PPP-IBGE) para calcular a correção.', 'warn');
+    else {
+      state.delta = computeDelta(base, ref);
+      dTxt = ['n', 'e', 'h'].map(k => fmt(state.delta.d[k], 4, ','));
+      setMsg('msgBase', dup > 1 ? 'Há ' + dup + ' pontos com esse nome. Usei o primeiro como base.' : '', dup > 1 ? 'warn' : '');
+    }
+  } else if (state.points.length) setMsg('msgBase', 'Selecione o ponto da base.', 'warn');
+  else setMsg('msgBase', '');
+
+  ['N', 'E', 'H'].forEach((k, i) => { $('o' + k).textContent = obsTxt[i]; $('d' + k).textContent = dTxt[i]; });
+  render();
+}
+
+function render() {
+  const has = state.points.length > 0;
+  $('btnRaw').disabled = !has;
+  $('btnCorr').disabled = !(has && state.delta);
+
+  const box = $('tableBox'), sum = $('summary');
+  if (!has) {
+    sum.innerHTML = '';
+    box.innerHTML = '<div class="empty">Os pontos aparecem aqui depois que você importar o arquivo.</div>';
+    return;
+  }
+  const invalid = state.points.filter(p => !isFinite(parseNum(p.n)) || !isFinite(parseNum(p.e)) || !isFinite(parseNum(p.h))).length;
+  sum.innerHTML = '<span><b>' + state.points.length + '</b> pontos</span>' +
+    (state.delta ? '<span>Correção aplicada a todos</span>' : '<span>Correção ainda não calculada</span>') +
+    (invalid ? '<span>' + invalid + ' sem coordenada numérica</span>' : '');
+
+  const LIMIT = 500;
+  const shown = state.points.slice(0, LIMIT);
+  const baseName = $('base').value;
+  let html = '<table><thead><tr><th>Nome</th><th>Código</th><th>N bruto</th><th>N corrigido</th><th>E bruto</th><th>E corrigido</th><th>h bruto</th><th>h corrigido</th></tr></thead><tbody>';
+  const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  for (const p of shown) {
+    const c = state.delta ? correctPoint(p, state.delta.d, ',') : { n: '', e: '', h: '' };
+    html += '<tr' + (p.nome === baseName ? ' class="base"' : '') + '><td>' + esc(p.nome) + '</td><td>' + esc(p.cod) + '</td>' +
+      '<td>' + esc(swapDecimal(p.n, ',')) + '</td><td class="corr">' + esc(c.n) + '</td>' +
+      '<td>' + esc(swapDecimal(p.e, ',')) + '</td><td class="corr">' + esc(c.e) + '</td>' +
+      '<td>' + esc(swapDecimal(p.h, ',')) + '</td><td class="corr">' + esc(c.h) + '</td></tr>';
+  }
+  html += '</tbody></table>';
+  if (state.points.length > LIMIT) html += '<div class="empty">Mostrando os primeiros ' + LIMIT + ' pontos. A exportação inclui todos.</div>';
+  box.innerHTML = html;
+}
+
+function today() {
+  const d = new Date();
+  return d.getFullYear() + String(d.getMonth() + 1).padStart(2, '0') + String(d.getDate()).padStart(2, '0');
+}
+
+function download(kind) {
+  const opts = { decSep: $('dec').value, header: $('hdr').checked, delta: state.delta };
+  const text = exportLines(state.points, state.modelKey, kind, opts);
+  const bytes = encodeText(text + '\r\n', $('enc').value);
+  const blob = new Blob([bytes], { type: 'text/plain' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = (kind === 'corr' ? 'PONTOS-CORRIGIDOS-' : 'PONTOS-NTRIP-') + today() + '.txt';
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+}
+
+// Eventos
+$('file').addEventListener('change', e => loadFile(e.target.files[0]));
+const drop = $('drop');
+['dragenter', 'dragover'].forEach(t => drop.addEventListener(t, e => { e.preventDefault(); drop.classList.add('over'); }));
+['dragleave', 'drop'].forEach(t => drop.addEventListener(t, e => { e.preventDefault(); drop.classList.remove('over'); }));
+drop.addEventListener('drop', e => loadFile(e.dataTransfer.files[0]));
+drop.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); $('file').click(); } });
+$('model').addEventListener('change', () => parseCurrent(false));
+$('sep').addEventListener('change', () => parseCurrent(true));
+$('base').addEventListener('change', recompute);
+// Coordenadas coladas do PDF do PPP: ponto decimal vira vírgula; separador de milhar é removido
+function normalizeRef(s) {
+  s = String(s).replace(/[\u2212\u2013\u2014]/g, '-').replace(/[^\d.,\-+]/g, '');
+  const lc = s.lastIndexOf(','), ld = s.lastIndexOf('.');
+  if (lc > -1 && ld > -1) {
+    // o último separador é o decimal; o outro é milhar
+    s = lc > ld ? s.replace(/\./g, '') : s.replace(/,/g, '').replace('.', ',');
+  } else if (ld > -1) {
+    const dots = s.split('.').length - 1;
+    // vários pontos e nenhuma vírgula: todos menos o último são milhar
+    s = dots > 1 ? s.slice(0, ld).replace(/\./g, '') + ',' + s.slice(ld + 1) : s.replace('.', ',');
+  }
+  const first = s.indexOf(',');
+  if (first > -1) s = s.slice(0, first + 1) + s.slice(first + 1).replace(/,/g, '');
+  return s;
+}
+['refN', 'refE', 'refH'].forEach(id => {
+  const el = $(id);
+  el.addEventListener('input', () => {
+    const pos = el.selectionStart;
+    const before = el.value;
+    const after = normalizeRef(before);
+    if (after !== before) {
+      el.value = after;
+      const p = Math.max(0, (pos == null ? after.length : pos) - (before.length - after.length));
+      try { el.setSelectionRange(p, p); } catch (e) {}
+    }
+    recompute();
+  });
+});
+$('btnCorr').addEventListener('click', () => download('corr'));
+$('btnRaw').addEventListener('click', () => download('raw'));
+</script>
+</body>
+</html>

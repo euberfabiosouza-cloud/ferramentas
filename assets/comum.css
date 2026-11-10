@@ -1,0 +1,110 @@
+/* ============================================================
+   Ferramentas: estilos compartilhados (cores, tipografia,
+   cabeçalho, botões). Cada ferramenta só acrescenta o que é dela.
+   ============================================================ */
+
+/* ---------- Cores: tema claro (padrão) ---------- */
+:root {
+  color-scheme: light;
+  --bg: #F3F5F1;  --surface: #FFFFFF;  --surface-2: #F8FAF6;
+  --ink: #1A2B2A;  --ink-soft: #2C4140;  --muted: #63736D;
+  --line: #D8DED5;  --line-soft: #E8ECE5;  --line-strong: #BCC6BB;
+
+  --accent: #C2410C;  --accent-hover: #9A3412;  --accent-ink: #FFFFFF;
+  --accent-wash: #FDEBDD;  --accent-text: #B84308;
+  --mark: #E8590C;                       /* só decoração e foco */
+
+  --ok: #2F6B4F;  --ok-wash: #DDEFE5;
+  --warn: #8A4B00;  --warn-wash: #FBECD3;
+  --danger: #B3261E;  --danger-deep: #8E1D17;  --danger-wash: #FBE9E7;
+  --danger-btn: #B3261E;  --danger-btn-hover: #8E1D17;
+
+  --band: #1A2B2A;  --band-ink: #F3F5F1;  --band-muted: #AFC0B8;
+  --chip-bg: #1A2B2A;  --chip-ink: #F3F5F1;
+  --hl: #FFF3C9;                         /* linha em destaque */
+
+  --sans: "Schibsted Grotesk", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
+
+/* ---------- Cores: tema escuro ---------- */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --bg: #111816;  --surface: #1A2321;  --surface-2: #202B28;
+    --ink: #E7EDEA;  --ink-soft: #C5D1CB;  --muted: #93A39C;
+    --line: #2F3D39;  --line-soft: #26322F;  --line-strong: #43534E;
+    --accent: #FF8A3D;  --accent-hover: #FFA15F;  --accent-ink: #1A0E05;
+    --accent-wash: #3A2314;  --accent-text: #FFA15F;  --mark: #FF8A3D;
+    --ok: #6FCF9C;  --ok-wash: #1B3A2C;
+    --warn: #F0B765;  --warn-wash: #3A2C14;
+    --danger: #FF8F86;  --danger-deep: #FFB0A9;  --danger-wash: #3B1F1C;
+    --danger-btn: #C63A2F;  --danger-btn-hover: #DB4A3F;
+    --band: #0C1211;  --band-ink: #E7EDEA;  --band-muted: #93A39C;
+    --chip-bg: #2A3A36;  --chip-ink: #E7EDEA;
+    --hl: #3D3515;
+  }
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --bg: #111816;  --surface: #1A2321;  --surface-2: #202B28;
+  --ink: #E7EDEA;  --ink-soft: #C5D1CB;  --muted: #93A39C;
+  --line: #2F3D39;  --line-soft: #26322F;  --line-strong: #43534E;
+  --accent: #FF8A3D;  --accent-hover: #FFA15F;  --accent-ink: #1A0E05;
+  --accent-wash: #3A2314;  --accent-text: #FFA15F;  --mark: #FF8A3D;
+  --ok: #6FCF9C;  --ok-wash: #1B3A2C;
+  --warn: #F0B765;  --warn-wash: #3A2C14;
+  --danger: #FF8F86;  --danger-deep: #FFB0A9;  --danger-wash: #3B1F1C;
+  --danger-btn: #C63A2F;  --danger-btn-hover: #DB4A3F;
+  --band: #0C1211;  --band-ink: #E7EDEA;  --band-muted: #93A39C;
+  --chip-bg: #2A3A36;  --chip-ink: #E7EDEA;
+  --hl: #3D3515;
+}
+
+/* ---------- Base ---------- */
+*, *::before, *::after { box-sizing: border-box; }
+html { background: var(--bg); -webkit-text-size-adjust: 100%; }
+body { margin: 0; background: var(--bg); color: var(--ink); font: 400 15px/1.5 var(--sans); }
+button, input, select, textarea { font: inherit; color: inherit; }
+:focus-visible { outline: 3px solid var(--mark); outline-offset: 2px; }
+[hidden] { display: none !important; }
+.wrap { max-width: 1180px; margin: 0 auto; padding: 0 20px; }
+
+/* ---------- Cabeçalho ---------- */
+.top {
+  background-color: var(--band); color: var(--band-ink);
+  border-bottom: 1px solid var(--line);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='1200' height='160' viewBox='0 0 1200 160'%3E%3Cg fill='none' stroke='%239DB8AB' stroke-opacity='.16' stroke-width='1.2' transform='rotate(-14 900 90)'%3E%3Cellipse cx='900' cy='90' rx='60' ry='26'/%3E%3Cellipse cx='905' cy='88' rx='120' ry='52'/%3E%3Cellipse cx='912' cy='86' rx='190' ry='82'/%3E%3Cellipse cx='920' cy='84' rx='270' ry='116'/%3E%3Cellipse cx='930' cy='82' rx='360' ry='152'/%3E%3Cellipse cx='942' cy='80' rx='460' ry='190'/%3E%3Cellipse cx='955' cy='78' rx='570' ry='230'/%3E%3C/g%3E%3Ccircle cx='900' cy='90' r='4' fill='%23E8590C'/%3E%3C/svg%3E");
+  background-repeat: no-repeat; background-position: right center; background-size: cover;
+}
+.crumbs { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding-top: 14px; font-size: 13px; }
+.crumbs a { color: var(--band-muted); text-decoration: none; }
+.crumbs a:hover { color: var(--band-ink); text-decoration: underline; }
+.top-main { display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; flex-wrap: wrap; padding: 20px 0 26px; }
+.top h1 { margin: 0; font-size: clamp(26px, 4vw, 36px); line-height: 1.1; font-weight: 700; letter-spacing: -0.02em; }
+.top .lead, .top .stats { margin: 8px 0 0; color: var(--band-muted); font-size: 14px; max-width: 72ch; }
+.sync { display: flex; align-items: center; gap: 10px; color: var(--band-muted); font-size: 13px; }
+
+/* ---------- Botões ---------- */
+.btn {
+  appearance: none; display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+  border: 1px solid var(--line-strong); background: var(--surface); color: var(--ink);
+  border-radius: 6px; padding: 9px 14px; cursor: pointer; font-weight: 500; line-height: 1.2; text-decoration: none;
+}
+.btn:hover { border-color: var(--ink-soft); }
+.btn.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); font-weight: 600; }
+.btn.primary:hover { background: var(--accent-hover); border-color: var(--accent-hover); }
+.btn.ghost { background: transparent; color: var(--accent-text); border-color: var(--accent-text); }
+.btn.ghost:hover { background: var(--accent-wash); }
+.btn.danger { background: var(--danger-btn); border-color: var(--danger-btn); color: #fff; font-weight: 600; }
+.btn.danger:hover { background: var(--danger-btn-hover); border-color: var(--danger-btn-hover); }
+.btn.light { background: transparent; border-color: rgba(255,255,255,.35); color: var(--band-ink); }
+.btn.light:hover { border-color: #fff; }
+.btn.small { padding: 5px 10px; font-size: 13px; }
+.btn[disabled], .btn:disabled { opacity: .5; cursor: not-allowed; }
+
+/* ---------- Rodapé ---------- */
+.site-foot { margin-top: 40px; padding: 18px 0 32px; border-top: 1px solid var(--line); color: var(--muted); font-size: 13px; }
+.site-foot a { color: var(--accent-text); }
+
+@media (max-width: 760px) { .wrap { padding: 0 14px; } }

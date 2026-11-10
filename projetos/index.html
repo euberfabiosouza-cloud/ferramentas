@@ -1,0 +1,757 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>Controle de projetos · Ferramentas</title>
+<meta name="description" content="Controle de projetos: cadastro de projetos e clientes ligado a uma planilha Google, com ID e nome de pasta automáticos.">
+<link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&family=Schibsted+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/comum.css">
+<script src="../assets/comum.js"></script>
+<style>
+main.wrap { padding-bottom: 8px; }
+
+/* Botões (base em comum.css) */
+.btn.ghost-danger { color: var(--danger); border-color: var(--danger); background: var(--surface); }
+.btn.ghost-danger:hover { background: var(--danger-wash); }
+.btn.primary[disabled] { cursor: progress; }
+.btn.copy.done { background: var(--ok-wash); border-color: var(--ok); color: var(--ok); }
+
+/* Barra de ferramentas */
+.bar { display: flex; flex-wrap: wrap; gap: 12px 16px; align-items: center; justify-content: space-between; padding: 22px 0 14px; }
+.tabs { display: flex; gap: 4px; border-bottom: 2px solid var(--line); }
+.tab { appearance: none; background: none; border: 0; padding: 8px 14px 10px; margin-bottom: -2px; border-bottom: 3px solid transparent; font-weight: 600; color: var(--muted); cursor: pointer; }
+.tab[aria-selected="true"] { color: var(--ink); border-bottom-color: var(--mark); }
+.tab .n { font-weight: 500; color: var(--muted); margin-left: 4px; font-variant-numeric: tabular-nums; }
+.tools { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.tools input[type=search], .tools select { background: var(--surface); color: var(--ink); border: 1px solid var(--line-strong); border-radius: 6px; padding: 8px 10px; min-width: 0; }
+.tools input[type=search] { width: 220px; }
+.tools select { max-width: 200px; }
+
+/* Tabela */
+.tablewrap { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; overflow: auto; }
+table { width: 100%; border-collapse: collapse; }
+th, td { text-align: left; padding: 10px 14px; vertical-align: top; border-bottom: 1px solid var(--line-soft); }
+th { position: sticky; top: 0; background: var(--surface-2); font-size: 13px; font-weight: 600; color: var(--muted); white-space: nowrap; border-bottom: 1px solid var(--line); }
+th button { appearance: none; background: none; border: 0; padding: 0; cursor: pointer; font: inherit; color: inherit; display: inline-flex; gap: 6px; align-items: center; }
+th button:hover { color: var(--ink); }
+th[aria-sort="ascending"] button::after { content: "▲"; font-size: 9px; color: var(--mark); }
+th[aria-sort="descending"] button::after { content: "▼"; font-size: 9px; color: var(--mark); }
+tbody tr { cursor: pointer; }
+tbody tr:hover td { background: var(--surface-2); }
+tbody tr:last-child td { border-bottom: 0; }
+td.num { font-variant-numeric: tabular-nums; }
+.dash { color: var(--line-strong); }
+.tag { display: inline-block; font-family: var(--mono); font-size: 12.5px; background: var(--chip-bg); color: var(--chip-ink); border-radius: 3px; padding: 2px 7px; white-space: nowrap; letter-spacing: .01em; }
+.tag.empty { background: transparent; color: var(--muted); border: 1px dashed var(--line-strong); }
+td.act { text-align: right; white-space: nowrap; width: 1%; }
+.state { padding: 44px 20px; text-align: center; color: var(--muted); }
+.state strong { display: block; color: var(--ink); font-size: 16px; margin-bottom: 4px; }
+
+/* Nome da pasta */
+.pasta { display: flex; align-items: flex-start; gap: 8px; }
+.pasta .nome { font-family: var(--mono); font-size: 12.5px; color: var(--ink-soft); word-break: break-all; min-width: 12ch; max-width: 340px; padding-top: 4px; }
+
+/* Avisos */
+.alert { border-radius: 6px; padding: 10px 14px; margin: 0 0 12px; background: var(--danger-wash); color: var(--danger-deep); border: 1px solid var(--danger); }
+
+/* Instalação inicial */
+.setup { background: var(--surface); border: 1px solid var(--line); border-left: 5px solid var(--mark); border-radius: 8px; padding: 22px 24px; margin-top: 26px; }
+.setup h2 { margin: 0 0 8px; font-size: 20px; }
+.setup ol { padding-left: 20px; margin: 10px 0 0; }
+.setup li { margin: 6px 0; max-width: 72ch; }
+.setup code { font-family: var(--mono); font-size: 13px; background: var(--line-soft); padding: 1px 5px; border-radius: 3px; }
+
+/* Diálogos */
+dialog { border: 1px solid var(--line); padding: 0; border-radius: 10px; width: min(560px, calc(100vw - 24px)); max-height: calc(100vh - 24px); background: var(--surface); color: var(--ink); box-shadow: 0 24px 60px rgba(20,35,33,.35); }
+dialog::backdrop { background: rgba(20,35,33,.55); }
+dialog[open] { animation: pop .16s ease-out; }
+@keyframes pop { from { transform: translateY(8px); opacity: 0; } to { transform: none; opacity: 1; } }
+.dlg-head { display: flex; align-items: center; justify-content: space-between; padding: 18px 22px 12px; }
+.dlg-head h2 { margin: 0; font-size: 20px; letter-spacing: -0.01em; }
+.x { appearance: none; background: none; border: 0; font-size: 26px; line-height: 1; cursor: pointer; color: var(--muted); padding: 2px 8px; border-radius: 6px; }
+.x:hover { color: var(--ink); background: var(--line-soft); }
+.dlg-body { padding: 0 22px 6px; display: grid; gap: 14px; }
+.dlg-body p { margin: 0; }
+.dlg-foot { display: flex; justify-content: flex-end; gap: 10px; padding: 16px 22px 20px; flex-wrap: wrap; }
+.dlg-foot .left { margin-right: auto; }
+.idprev { display: flex; align-items: center; gap: 12px; background: var(--bg); border: 1px dashed var(--line-strong); border-radius: 6px; padding: 10px 14px; }
+.idprev .lbl { font-size: 13px; color: var(--muted); }
+.idprev .tag { font-size: 15px; padding: 3px 9px; }
+.idprev .ph { opacity: .55; }
+.pastabox { background: var(--bg); border: 1px solid var(--line-strong); border-radius: 6px; padding: 10px 12px; display: grid; gap: 8px; }
+.pastabox .lbl { font-size: 13px; color: var(--muted); font-weight: 600; }
+.pastabox .row { display: flex; gap: 10px; align-items: center; justify-content: space-between; }
+.pastabox .val { flex: 1; font-family: var(--mono); font-size: 14px; word-break: break-all; color: var(--ink); }
+label, fieldset legend { display: grid; gap: 5px; font-weight: 600; font-size: 14px; }
+fieldset { border: 0; margin: 0; padding: 0; }
+fieldset legend { padding: 0; margin-bottom: 5px; }
+.dlg-body input, .dlg-body select { width: 100%; background: var(--surface); color: var(--ink); border: 1px solid var(--line-strong); border-radius: 6px; padding: 9px 11px; font-weight: 400; }
+.dlg-body input:focus, .dlg-body select:focus { border-color: var(--mark); outline: 3px solid var(--accent-wash); outline-offset: 0; }
+.row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.row-date { display: grid; grid-template-columns: 1.4fr 1fr; gap: 10px; }
+small.hint { font-weight: 400; font-size: 13px; color: var(--muted); min-height: 1em; }
+small.hint.warn { color: var(--accent-text); }
+
+/* Aviso rápido */
+#toast { position: fixed; left: 50%; bottom: 24px; transform: translate(-50%, 20px); background: var(--band); color: var(--band-ink); border: 1px solid var(--line-strong); padding: 11px 18px; border-radius: 6px; opacity: 0; pointer-events: none; transition: opacity .18s, transform .18s; z-index: 50; box-shadow: 0 10px 30px rgba(0,0,0,.3); max-width: calc(100vw - 32px); }
+#toast.show { opacity: 1; transform: translate(-50%, 0); }
+
+[hidden] { display: none !important; }
+
+/* Celular: cada linha vira um cartão */
+@media (max-width: 760px) {
+  .wrap { padding: 0 14px; }
+  .tools input[type=search] { width: 100%; flex: 1 1 100%; }
+  .tools select { flex: 1 1 140px; max-width: none; }
+  .tools .btn.primary { flex: 1 1 100%; }
+  .tablewrap { background: transparent; border: 0; overflow: visible; }
+  table, tbody, tr, td { display: block; width: 100%; }
+  thead { display: none; }
+  tbody tr { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; margin-bottom: 10px; padding: 6px 0; }
+  td { border: 0; padding: 5px 14px; display: grid; grid-template-columns: 96px 1fr; gap: 8px; }
+  td::before { content: attr(data-label); color: var(--muted); font-size: 13px; padding-top: 1px; }
+  td.act { text-align: left; width: 100%; }
+  td.act::before { content: ""; }
+  .pasta .nome { max-width: none; }
+  .row2, .row-date { grid-template-columns: 1fr 1fr; }
+}
+@media (prefers-reduced-motion: reduce) {
+  dialog[open] { animation: none; }
+  #toast { transition: none; }
+}
+</style>
+</head>
+<body>
+<header class="top">
+  <div class="wrap">
+    <nav class="crumbs" aria-label="Navegação">
+      <a href="../">← Todas as ferramentas</a>
+      <button type="button" class="btn light small" id="themeBtn">Tema</button>
+    </nav>
+    <div class="top-main">
+      <div>
+        <h1>Controle de projetos</h1>
+        <p class="stats" id="stats">Carregando a planilha…</p>
+      </div>
+      <div class="sync">
+        <span id="syncText"></span>
+        <button class="btn light small" id="btnRefresh" type="button">Atualizar</button>
+      </div>
+    </div>
+  </div>
+</header>
+
+
+<main class="wrap" style="padding-top:0">
+
+  <section class="setup" id="setup" hidden>
+    <h2>Falta ligar o site à planilha</h2>
+    <p>O site lê e grava na planilha por meio de um script do Google. Faça isso uma única vez:</p>
+    <ol>
+      <li>Abra a planilha, vá em <strong>Extensões &gt; Apps Script</strong> e cole todo o conteúdo do arquivo <code>Code.gs</code>.</li>
+      <li>Clique em <strong>Implantar &gt; Nova implantação &gt; App da Web</strong>. Em <em>Executar como</em> escolha <strong>Eu</strong> e em <em>Quem pode acessar</em> escolha <strong>Qualquer pessoa</strong>. Autorize quando o Google pedir.</li>
+      <li>Copie a <strong>URL do app da Web</strong> (termina em <code>/exec</code>).</li>
+      <li>No arquivo <code>projetos/index.html</code>, cole essa URL em <code>API_URL</code> (logo no início do script) e envie para o GitHub.</li>
+    </ol>
+  </section>
+
+  <div id="app" hidden>
+    <div class="bar">
+      <div class="tabs" role="tablist">
+        <button class="tab" role="tab" id="tabProjetos" aria-selected="true" type="button">Projetos<span class="n" id="nProjetos"></span></button>
+        <button class="tab" role="tab" id="tabClientes" aria-selected="false" type="button">Clientes<span class="n" id="nClientes"></span></button>
+      </div>
+      <div class="tools">
+        <input type="search" id="q" placeholder="Buscar" aria-label="Buscar">
+        <select id="fCliente" aria-label="Filtrar por cliente"></select>
+        <select id="fServico" aria-label="Filtrar por tipo de serviço"></select>
+        <button class="btn primary" id="btnNovo" type="button">Novo projeto</button>
+      </div>
+    </div>
+    <div class="alert" id="error" role="alert" hidden></div>
+    <div class="tablewrap"><table id="tbl"></table></div>
+    <div class="state" id="state" hidden></div>
+  </div>
+</main>
+
+<footer class="site-foot wrap">
+  <a href="../">← Voltar para todas as ferramentas</a>
+</footer>
+
+<!-- Diálogo: projeto -->
+<dialog id="dlgProjeto" aria-labelledby="dpTitle">
+  <form id="fProjeto" novalidate>
+    <div class="dlg-head">
+      <h2 id="dpTitle">Novo projeto</h2>
+      <button type="button" class="x" data-close aria-label="Fechar">×</button>
+    </div>
+    <div class="dlg-body">
+      <div class="idprev"><span class="lbl">ID do projeto</span><span class="tag" id="idPreview"></span></div>
+      <div class="pastabox" id="fpPastaBox" hidden>
+        <div class="row">
+          <span class="lbl">Nome da pasta</span>
+          <button type="button" class="btn small copy" id="fpPastaCopy">Copiar pasta</button>
+        </div>
+      </div>
+      <label>Cliente
+        <input id="fpCliente" list="dlClientes" autocomplete="off" autocapitalize="characters" required>
+        <small class="hint" id="fpCliHint"></small>
+      </label>
+      <datalist id="dlClientes"></datalist>
+      <label>Imóvel
+        <input id="fpImovel" autocomplete="off">
+      </label>
+      <div class="row2">
+        <label>Nº do projeto
+          <input id="fpSeq" type="number" min="1" step="1" inputmode="numeric" placeholder="Automático">
+          <small class="hint" id="fpSeqHint"></small>
+        </label>
+        <label>Matrícula
+          <input id="fpMat" autocomplete="off" placeholder="Ex.: 48989">
+        </label>
+      </div>
+      <label>Tipo de serviço
+        <select id="fpServ"></select>
+      </label>
+      <fieldset>
+        <legend>Criado em</legend>
+        <div class="row-date">
+          <select id="fpMes" aria-label="Mês"></select>
+          <select id="fpAno" aria-label="Ano"></select>
+        </div>
+      </fieldset>
+      <div class="alert" id="fpErr" role="alert" hidden></div>
+    </div>
+    <div class="dlg-foot">
+      <button type="button" class="btn ghost-danger left" id="fpDel" hidden>Excluir</button>
+      <button type="button" class="btn" data-close>Cancelar</button>
+      <button type="submit" class="btn primary" id="fpSave">Salvar projeto</button>
+    </div>
+  </form>
+</dialog>
+
+<!-- Diálogo: cliente -->
+<dialog id="dlgCliente" aria-labelledby="dcTitle">
+  <form id="fCliente" novalidate>
+    <div class="dlg-head">
+      <h2 id="dcTitle">Novo cliente</h2>
+      <button type="button" class="x" data-close aria-label="Fechar">×</button>
+    </div>
+    <div class="dlg-body">
+      <label>Nome do cliente
+        <input id="fcNome" autocomplete="off" autocapitalize="characters" required>
+        <small class="hint" id="fcHint"></small>
+      </label>
+      <div class="alert" id="fcErr" role="alert" hidden></div>
+    </div>
+    <div class="dlg-foot">
+      <button type="button" class="btn ghost-danger left" id="fcDel" hidden>Excluir</button>
+      <button type="button" class="btn" data-close>Cancelar</button>
+      <button type="submit" class="btn primary" id="fcSave">Salvar cliente</button>
+    </div>
+  </form>
+</dialog>
+
+<!-- Diálogo: projeto salvo (mostra a pasta) -->
+<dialog id="dlgSalvo" aria-labelledby="dsTitle">
+  <div class="dlg-head">
+    <h2 id="dsTitle">Projeto salvo</h2>
+    <button type="button" class="x" data-close aria-label="Fechar">×</button>
+  </div>
+  <div class="dlg-body">
+    <div class="pastabox">
+      <div class="row">
+        <span class="lbl">Nome da pasta</span>
+        <button type="button" class="btn small copy" id="dsCopy">Copiar pasta</button>
+      </div>
+    </div>
+  </div>
+  <div class="dlg-foot">
+    <button type="button" class="btn primary" data-close>Fechar</button>
+  </div>
+</dialog>
+
+<!-- Diálogo: confirmação -->
+<dialog id="dlgConfirm" aria-labelledby="dqTitle">
+  <form method="dialog">
+    <div class="dlg-head">
+      <h2 id="dqTitle">Confirmar</h2>
+    </div>
+    <div class="dlg-body"><p id="dqMsg"></p></div>
+    <div class="dlg-foot">
+      <button type="submit" class="btn" value="cancel" id="dqNo">Cancelar</button>
+      <button type="submit" class="btn danger" value="ok" id="dqYes">Excluir</button>
+    </div>
+  </form>
+</dialog>
+
+<div id="toast" role="status" aria-live="polite"></div>
+
+<script>
+/* ============================================================
+   CONFIGURAÇÃO — cole aqui a URL do app da Web (termina em /exec)
+   ============================================================ */
+const API_URL = 'https://script.google.com/macros/s/AKfycbzoiMccn0JOEz7adsbf3plThEhmRM5K23YBGJiohojjeyXcm6WVSrG22KhdObUZk4HH/exec';
+
+/* ---------- Estado ---------- */
+const MESES = ['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'];
+const state = {
+  data: null,
+  tab: 'projetos',
+  q: '', fCliente: '', fServico: '',
+  sort: { projetos: { key: 'row', dir: 'desc' }, clientes: { key: 'row', dir: 'asc' } },
+  loadedAt: 0, busy: false,
+  editProjeto: null, editCliente: null, seqTouched: false
+};
+
+const $ = id => document.getElementById(id);
+const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const norm = s => String(s == null ? '' : s).trim().toUpperCase();
+const pad3 = n => String(n).padStart(3, '0');
+const dash = '<span class="dash">—</span>';
+
+/* ---------- Comunicação com a planilha ---------- */
+async function apiGet() {
+  const r = await fetch(API_URL + (API_URL.includes('?') ? '&' : '?') + 't=' + Date.now());
+  const j = await r.json();
+  if (!j.ok) throw new Error(j.error || 'Erro ao ler a planilha.');
+  return j.data;
+}
+async function apiPost(payload) {
+  // text/plain evita o pré-voo CORS que o Apps Script não responde
+  const r = await fetch(API_URL, { method: 'POST', body: JSON.stringify(payload) });
+  const j = await r.json();
+  if (!j.ok) throw new Error(j.error || 'Erro ao gravar na planilha.');
+  return j.data;
+}
+const NET_ERR = 'Não foi possível falar com a planilha. Confira sua conexão e a URL em API_URL.';
+const friendly = e => (e instanceof TypeError || /Failed to fetch|NetworkError|JSON/i.test(String(e.message))) ? NET_ERR : e.message;
+
+async function load(silent) {
+  if (state.busy) return;
+  state.busy = true;
+  if (!silent) $('syncText').textContent = 'Atualizando…';
+  try {
+    state.data = await apiGet();
+    state.loadedAt = Date.now();
+    $('error').hidden = true;
+    $('syncText').textContent = 'Atualizado às ' + new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+    render();
+  } catch (e) {
+    $('error').textContent = friendly(e);
+    $('error').hidden = false;
+    $('syncText').textContent = 'Sem conexão';
+    if (!state.data) { $('stats').textContent = 'Não foi possível carregar'; $('tbl').innerHTML = ''; }
+  } finally {
+    state.busy = false;
+  }
+}
+
+/* ---------- Utilidades de dados ---------- */
+const clientes = () => state.data ? state.data.clientes : [];
+const projetos = () => state.data ? state.data.projetos : [];
+const servicos = () => state.data ? state.data.servicos : [];
+const findCliente = nome => clientes().find(c => norm(c.nome) === norm(nome));
+const findServico = tipo => servicos().find(s => norm(s.tipo) === norm(tipo));
+const qtdProjetos = nome => projetos().filter(p => norm(p.cliente) === norm(nome)).length;
+
+function nextSeq(cliente) {
+  let max = 0;
+  projetos().forEach(p => { if (norm(p.cliente) === norm(cliente) && typeof p.seq === 'number' && p.seq > max) max = p.seq; });
+  return max + 1;
+}
+function fmtMes(iso) {
+  if (!iso || iso.length < 7) return '';
+  const m = parseInt(iso.slice(5, 7), 10);
+  return MESES[m - 1] + '/' + iso.slice(0, 4);
+}
+
+/* ---------- Copiar para a área de transferência ---------- */
+async function copyText(text) {
+  try {
+    await navigator.clipboard.writeText(text);
+    return true;
+  } catch (_) {
+    try {
+      const ta = document.createElement('textarea');
+      ta.value = text; ta.setAttribute('readonly', '');
+      ta.style.position = 'fixed'; ta.style.opacity = '0';
+      document.body.appendChild(ta); ta.select();
+      const ok = document.execCommand('copy');
+      document.body.removeChild(ta);
+      return ok;
+    } catch (_) { return false; }
+  }
+}
+async function doCopy(btn, text) {
+  if (!text) return;
+  const ok = await copyText(text);
+  if (ok) {
+    const old = btn.dataset.label || btn.textContent;
+    btn.dataset.label = old;
+    btn.textContent = 'Copiado ✓'; btn.classList.add('done');
+    setTimeout(() => { btn.textContent = old; btn.classList.remove('done'); }, 1600);
+  } else {
+    toast('Não foi possível copiar. Selecione o texto e copie manualmente.');
+  }
+}
+
+/* ---------- Confirmação ---------- */
+function askConfirm(title, msg, yesLabel) {
+  return new Promise(resolve => {
+    const d = $('dlgConfirm');
+    $('dqTitle').textContent = title;
+    $('dqMsg').textContent = msg;
+    $('dqYes').textContent = yesLabel || 'Excluir';
+    d.returnValue = 'cancel';
+    d.addEventListener('close', () => resolve(d.returnValue === 'ok'), { once: true });
+    d.showModal();
+    $('dqNo').focus();
+  });
+}
+
+/* ---------- Renderização ---------- */
+function render() {
+  const d = state.data;
+  if (!d) return;
+  $('stats').textContent = projetos().length + ' projetos para ' + clientes().length + ' clientes';
+  $('nProjetos').textContent = projetos().length;
+  $('nClientes').textContent = clientes().length;
+
+  // Filtros
+  const selC = $('fCliente'), selS = $('fServico');
+  const vc = state.fCliente, vs = state.fServico;
+  selC.innerHTML = '<option value="">Todos os clientes</option>' + clientes().map(c => `<option>${esc(c.nome)}</option>`).join('');
+  selS.innerHTML = '<option value="">Todos os serviços</option>' + servicos().map(s => `<option>${esc(s.tipo)}</option>`).join('');
+  selC.value = vc; selS.value = vs;
+
+  const isProj = state.tab === 'projetos';
+  selC.hidden = selS.hidden = !isProj;
+  $('btnNovo').textContent = isProj ? 'Novo projeto' : 'Novo cliente';
+  $('tabProjetos').setAttribute('aria-selected', isProj);
+  $('tabClientes').setAttribute('aria-selected', !isProj);
+
+  isProj ? renderProjetos() : renderClientes();
+}
+
+function sortRows(rows, key, dir) {
+  const f = dir === 'asc' ? 1 : -1;
+  return rows.slice().sort((a, b) => {
+    const x = a[key], y = b[key];
+    const ex = x === '' || x == null, ey = y === '' || y == null;
+    if (ex && ey) return 0;
+    if (ex) return 1;
+    if (ey) return -1;
+    if (typeof x === 'number' && typeof y === 'number') return (x - y) * f;
+    return String(x).localeCompare(String(y), 'pt-BR', { numeric: true, sensitivity: 'base' }) * f;
+  });
+}
+
+function thead(cols, tab) {
+  const s = state.sort[tab];
+  return '<thead><tr>' + cols.map(c => {
+    if (!c.key) return '<th></th>';
+    const aria = s.key === c.key ? (s.dir === 'asc' ? 'ascending' : 'descending') : 'none';
+    return `<th aria-sort="${aria}"><button type="button" data-sort="${c.key}">${c.label}</button></th>`;
+  }).join('') + '</tr></thead>';
+}
+
+function renderProjetos() {
+  const q = norm(state.q);
+  let rows = projetos().filter(p =>
+    (!state.fCliente || norm(p.cliente) === norm(state.fCliente)) &&
+    (!state.fServico || norm(p.servico) === norm(state.fServico)) &&
+    (!q || norm([p.id, p.cliente, p.imovel, p.matricula, p.servico, p.seq].join(' ')).includes(q))
+  );
+  const s = state.sort.projetos;
+  rows = sortRows(rows, s.key, s.dir);
+
+  const cols = [
+    { key: 'id', label: 'ID' }, { key: 'cliente', label: 'Cliente' }, { key: 'imovel', label: 'Imóvel' },
+    { key: 'seq', label: 'Nº' }, { key: 'matricula', label: 'Matrícula' }, { key: 'servico', label: 'Serviço' },
+    { key: 'criado', label: 'Criado em' }, { key: null }
+  ];
+  $('tbl').innerHTML = thead(cols, 'projetos') + '<tbody>' + rows.map(p => `
+    <tr data-row="${p.row}">
+      <td data-label="ID">${p.id ? `<span class="tag">${esc(p.id)}</span>` : dash}</td>
+      <td data-label="Cliente"><strong>${esc(p.cliente)}</strong></td>
+      <td data-label="Imóvel">${p.imovel ? esc(p.imovel) : dash}</td>
+      <td data-label="Nº" class="num">${p.seq === '' ? dash : pad3(p.seq)}</td>
+      <td data-label="Matrícula" class="num">${p.matricula ? esc(p.matricula) : dash}</td>
+      <td data-label="Serviço">${p.servico ? esc(p.servico) : dash}</td>
+      <td data-label="Criado em">${p.criado ? fmtMes(p.criado) : dash}</td>
+      <td class="act"><button class="btn small" type="button" data-edit="${p.row}">Editar</button></td>
+    </tr>`).join('') + '</tbody>';
+  showState(rows.length === 0, projetos().length === 0
+    ? ['Nenhum projeto ainda', 'Use “Novo projeto” para registrar o primeiro.']
+    : ['Nada encontrado', 'Ajuste a busca ou os filtros.']);
+}
+
+function renderClientes() {
+  const q = norm(state.q);
+  const cont = {};
+  projetos().forEach(p => { const k = norm(p.cliente); cont[k] = (cont[k] || 0) + 1; });
+  let rows = clientes().map(c => ({ ...c, qtd: cont[norm(c.nome)] || 0 }))
+    .filter(c => !q || norm(c.id + ' ' + c.nome).includes(q));
+  const s = state.sort.clientes;
+  rows = sortRows(rows, s.key, s.dir);
+
+  const cols = [{ key: 'id', label: 'ID' }, { key: 'nome', label: 'Nome' }, { key: 'qtd', label: 'Projetos' }, { key: null }];
+  $('tbl').innerHTML = thead(cols, 'clientes') + '<tbody>' + rows.map(c => `
+    <tr data-crow="${c.row}">
+      <td data-label="ID"><span class="tag">${esc(c.id)}</span></td>
+      <td data-label="Nome"><strong>${esc(c.nome)}</strong></td>
+      <td data-label="Projetos" class="num">${c.qtd}</td>
+      <td class="act"><button class="btn small" type="button" data-cedit="${c.row}">Editar</button></td>
+    </tr>`).join('') + '</tbody>';
+  showState(rows.length === 0, clientes().length === 0
+    ? ['Nenhum cliente ainda', 'Use “Novo cliente” para cadastrar o primeiro.']
+    : ['Nada encontrado', 'Ajuste a busca.']);
+}
+
+function showState(empty, msg) {
+  const el = $('state');
+  el.hidden = !empty;
+  if (empty) el.innerHTML = `<strong>${esc(msg[0])}</strong>${esc(msg[1])}`;
+  $('tbl').hidden = empty;
+}
+
+/* ---------- Diálogo de projeto ---------- */
+function fillSelects(selectedServ, ano) {
+  const sv = $('fpServ');
+  let html = '<option value="">Selecione…</option>' + servicos().map(s => `<option value="${esc(s.tipo)}">${esc(s.tipo)}</option>`).join('');
+  const hit = selectedServ && findServico(selectedServ);
+  if (selectedServ && !hit) html += `<option value="${esc(selectedServ)}">${esc(selectedServ)} (fora da lista)</option>`;
+  sv.innerHTML = html;
+  sv.value = hit ? hit.tipo : (selectedServ || '');
+
+  $('fpMes').innerHTML = '<option value="">Mês</option>' + MESES.map((m, i) => `<option value="${pad3(i + 1).slice(1)}">${m}</option>`).join('');
+  const y = new Date().getFullYear();
+  const anos = new Set(); for (let a = y - 4; a <= y + 1; a++) anos.add(a);
+  if (ano) anos.add(Number(ano));
+  $('fpAno').innerHTML = '<option value="">Ano</option>' + [...anos].sort((a, b) => b - a).map(a => `<option>${a}</option>`).join('');
+}
+
+function openProjeto(row) {
+  const p = row ? projetos().find(x => x.row === row) : null;
+  state.editProjeto = p ? { row: p.row, original: { id: p.id, cliente: p.cliente, imovel: p.imovel, seq: p.seq } } : null;
+  state.seqTouched = !!p;
+  $('dpTitle').textContent = p ? 'Editar projeto' : 'Novo projeto';
+  $('fpSave').textContent = p ? 'Salvar alterações' : 'Salvar projeto';
+  $('fpDel').hidden = !p;
+  $('fpPastaBox').hidden = !(p && p.pasta);
+  $('fpPastaCopy').dataset.copy = p ? (p.pasta || '') : '';
+  $('dlClientes').innerHTML = clientes().map(c => `<option value="${esc(c.nome)}"></option>`).join('');
+
+  const hoje = new Date();
+  const criado = p ? p.criado : `${hoje.getFullYear()}-${pad3(hoje.getMonth() + 1).slice(1)}-01`;
+  fillSelects(p ? p.servico : '', criado.slice(0, 4));
+  $('fpCliente').value = p ? p.cliente : '';
+  $('fpImovel').value = p ? p.imovel : '';
+  $('fpSeq').value = p && p.seq !== '' ? p.seq : '';
+  $('fpMat').value = p ? p.matricula : '';
+  $('fpMes').value = criado ? criado.slice(5, 7) : '';
+  $('fpAno').value = criado ? criado.slice(0, 4) : '';
+  $('fpErr').hidden = true;
+  updateProjetoHints();
+  $('dlgProjeto').showModal();
+  if (!p) $('fpCliente').focus();
+}
+
+function updateProjetoHints() {
+  const nome = $('fpCliente').value;
+  const existe = findCliente(nome);
+  const hint = $('fpCliHint');
+  if (norm(nome) && !existe) { hint.textContent = 'Cliente novo: será cadastrado na aba Clientes.'; hint.className = 'hint warn'; }
+  else { hint.textContent = ''; hint.className = 'hint'; }
+
+  // número automático para novos projetos
+  if (!state.editProjeto && !state.seqTouched) {
+    $('fpSeq').value = norm(nome) ? nextSeq(nome) : '';
+  }
+  const seq = $('fpSeq').value === '' ? (norm(nome) ? nextSeq(nome) : '') : Number($('fpSeq').value);
+  const dup = projetos().find(p => norm(p.cliente) === norm(nome) && seq !== '' && Number(p.seq) === seq &&
+    !(state.editProjeto && p.row === state.editProjeto.row));
+  const sh = $('fpSeqHint');
+  if (dup) { sh.textContent = 'Este cliente já tem o projeto nº ' + pad3(seq) + '.'; sh.className = 'hint warn'; }
+  else { sh.textContent = ''; sh.className = 'hint'; }
+
+  // pré-visualização do ID (mesma regra da planilha)
+  const c = findCliente(nome);
+  const cid = c ? c.id : (norm(nome) ? pad3(clientes().length + 1) : '');
+  const sv = findServico($('fpServ').value);
+  const prev = $('idPreview');
+  if (!cid) { prev.innerHTML = '<span class="ph">—</span>'; return; }
+  prev.innerHTML = `${esc(cid)}-${pad3(seq === '' ? 0 : seq)}-${sv ? esc(sv.id) : '<span class="ph">···</span>'}`;
+}
+
+async function saveProjeto(ev) {
+  ev.preventDefault();
+  const err = $('fpErr');
+  const cliente = norm($('fpCliente').value);
+  const mes = $('fpMes').value, ano = $('fpAno').value;
+  if (!cliente) return showErr(err, 'Informe o cliente.');
+  if (!!mes !== !!ano) return showErr(err, 'Escolha mês e ano, ou deixe os dois em branco.');
+  const data = {
+    cliente, imovel: $('fpImovel').value.trim(), seq: $('fpSeq').value,
+    matricula: $('fpMat').value.trim(), servico: $('fpServ').value, criado: mes && ano ? `${ano}-${mes}` : ''
+  };
+  const payload = state.editProjeto
+    ? { action: 'updateProjeto', row: state.editProjeto.row, original: state.editProjeto.original, data }
+    : { action: 'addProjeto', data };
+  const wasEdit = !!state.editProjeto;
+  const antes = new Set(projetos().map(p => p.row));
+  await submit($('fpSave'), err, payload, $('dlgProjeto'), wasEdit ? 'Alterações salvas' : 'Projeto salvo', () => {
+    if (wasEdit) return;
+    // novo projeto: mostra o nome da pasta gerado na coluna H
+    const novo = projetos().find(p => !antes.has(p.row));
+    if (novo && novo.pasta) {
+            $('dsCopy').dataset.copy = novo.pasta;
+      $('dlgSalvo').showModal();
+    }
+  });
+}
+
+async function excluirProjeto() {
+  const e = state.editProjeto;
+  if (!e) return;
+  const p = projetos().find(x => x.row === e.row);
+  const nome = p ? [p.id, p.cliente, p.imovel].filter(Boolean).join(' · ') : 'este projeto';
+  const ok = await askConfirm('Excluir projeto?', `“${nome}” será removido da planilha. Isso não pode ser desfeito pelo site.`, 'Excluir projeto');
+  if (!ok) return;
+  await submit($('fpDel'), $('fpErr'), { action: 'deleteProjeto', row: e.row, original: e.original }, $('dlgProjeto'), 'Projeto excluído');
+}
+
+/* ---------- Diálogo de cliente ---------- */
+function openCliente(row) {
+  const c = row ? clientes().find(x => x.row === row) : null;
+  state.editCliente = c ? { row: c.row, nome: c.nome } : null;
+  $('dcTitle').textContent = c ? 'Editar cliente' : 'Novo cliente';
+  $('fcSave').textContent = c ? 'Salvar alterações' : 'Salvar cliente';
+  $('fcNome').value = c ? c.nome : '';
+  $('fcHint').textContent = c ? 'Renomear atualiza também os projetos deste cliente.' : '';
+  $('fcHint').className = 'hint';
+  $('fcErr').hidden = true;
+  const qtd = c ? qtdProjetos(c.nome) : 0;
+  $('fcDel').hidden = !c;
+  $('fcDel').disabled = qtd > 0;
+  $('fcDel').title = qtd > 0 ? 'Exclua ou mova os projetos deste cliente primeiro.' : '';
+  if (c && qtd > 0) {
+    $('fcHint').textContent = `Renomear atualiza também os projetos deste cliente. Para excluir, remova antes os ${qtd} projeto(s) dele.`;
+  }
+  $('dlgCliente').showModal();
+  $('fcNome').focus();
+}
+
+async function saveCliente(ev) {
+  ev.preventDefault();
+  const err = $('fcErr');
+  const nome = norm($('fcNome').value);
+  if (!nome) return showErr(err, 'Informe o nome do cliente.');
+  const payload = state.editCliente
+    ? { action: 'updateCliente', row: state.editCliente.row, originalNome: state.editCliente.nome, nome }
+    : { action: 'addCliente', nome };
+  await submit($('fcSave'), err, payload, $('dlgCliente'), state.editCliente ? 'Alterações salvas' : 'Cliente salvo');
+}
+
+async function excluirCliente() {
+  const e = state.editCliente;
+  if (!e) return;
+  if (qtdProjetos(e.nome) > 0) return showErr($('fcErr'), 'Este cliente ainda tem projetos. Exclua os projetos primeiro.');
+  const ok = await askConfirm('Excluir cliente?', `“${e.nome}” será removido da planilha. Isso não pode ser desfeito pelo site.`, 'Excluir cliente');
+  if (!ok) return;
+  await submit($('fcDel'), $('fcErr'), { action: 'deleteCliente', row: e.row, nome: e.nome }, $('dlgCliente'), 'Cliente excluído');
+}
+
+/* ---------- Envio comum ---------- */
+function showErr(el, msg) { el.textContent = msg; el.hidden = false; }
+
+async function submit(btn, errEl, payload, dlg, okMsg, after) {
+  const label = btn.textContent;
+  btn.disabled = true; btn.textContent = 'Aguarde…'; errEl.hidden = true;
+  try {
+    state.data = await apiPost(payload);
+    state.loadedAt = Date.now();
+    $('syncText').textContent = 'Atualizado às ' + new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+    dlg.close();
+    render();
+    toast(okMsg);
+    if (after) after();
+  } catch (e) {
+    showErr(errEl, friendly(e));
+  } finally {
+    btn.disabled = false; btn.textContent = label;
+  }
+}
+
+let toastTimer;
+function toast(msg) {
+  const t = $('toast');
+  t.textContent = msg; t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove('show'), 2600);
+}
+
+/* ---------- Eventos ---------- */
+$('tabProjetos').onclick = () => { state.tab = 'projetos'; render(); };
+$('tabClientes').onclick = () => { state.tab = 'clientes'; render(); };
+$('btnNovo').onclick = () => state.tab === 'projetos' ? openProjeto() : openCliente();
+$('btnRefresh').onclick = () => load(false);
+$('q').oninput = e => { state.q = e.target.value; render(); };
+$('fCliente').onchange = e => { state.fCliente = e.target.value; render(); };
+$('fServico').onchange = e => { state.fServico = e.target.value; render(); };
+
+$('tbl').addEventListener('click', e => {
+  const sortBtn = e.target.closest('[data-sort]');
+  if (sortBtn) {
+    const s = state.sort[state.tab], k = sortBtn.dataset.sort;
+    s.dir = s.key === k && s.dir === 'asc' ? 'desc' : 'asc'; s.key = k;
+    return render();
+  }
+  const cp = e.target.closest('[data-copy]');
+  if (cp) { e.stopPropagation(); return doCopy(cp, cp.dataset.copy); }
+  const edit = e.target.closest('[data-edit]'), cedit = e.target.closest('[data-cedit]');
+  const tr = e.target.closest('tr');
+  if (edit) return openProjeto(Number(edit.dataset.edit));
+  if (cedit) return openCliente(Number(cedit.dataset.cedit));
+  if (tr && tr.dataset.row) return openProjeto(Number(tr.dataset.row));
+  if (tr && tr.dataset.crow) return openCliente(Number(tr.dataset.crow));
+});
+
+$('fpPastaCopy').onclick = e => doCopy(e.currentTarget, e.currentTarget.dataset.copy);
+$('dsCopy').onclick = e => doCopy(e.currentTarget, e.currentTarget.dataset.copy);
+$('fpDel').onclick = excluirProjeto;
+$('fcDel').onclick = excluirCliente;
+
+['fpCliente', 'fpSeq', 'fpServ'].forEach(id => $(id).addEventListener('input', () => {
+  if (id === 'fpSeq') state.seqTouched = true;
+  updateProjetoHints();
+}));
+$('fProjeto').addEventListener('submit', saveProjeto);
+$('fCliente').addEventListener('submit', saveCliente);
+document.querySelectorAll('[data-close]').forEach(b => b.addEventListener('click', () => b.closest('dialog').close()));
+document.querySelectorAll('dialog').forEach(d => d.addEventListener('click', e => { if (e.target === d) d.close(); }));
+
+// Como qualquer pessoa pode editar a planilha, atualiza ao voltar para a aba
+document.addEventListener('visibilitychange', () => {
+  const aberto = document.querySelector('dialog[open]');
+  if (!document.hidden && API_URL && !aberto && Date.now() - state.loadedAt > 45000) load(true);
+});
+
+/* ---------- Início ---------- */
+if (!API_URL) {
+  $('setup').hidden = false;
+  $('stats').textContent = 'Configuração pendente';
+  $('btnRefresh').hidden = true;
+} else {
+  $('app').hidden = false;
+  load(false);
+}
+</script>
+</body>
+</html>

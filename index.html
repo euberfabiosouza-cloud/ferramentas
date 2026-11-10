@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>Ferramentas</title>
+<meta name="description" content="Conjunto de ferramentas de topografia e georreferenciamento: controle de projetos, ajuste PPP e cálculo de áreas.">
+<link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&family=Schibsted+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/comum.css">
+<script src="assets/comum.js"></script>
+<style>
+main.wrap { padding-top: 28px; }
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 16px; padding: 0; margin: 0; list-style: none; }
+
+.card {
+  position: relative; display: flex; flex-direction: column; gap: 10px;
+  background: var(--surface); border: 1px solid var(--line); border-top: 4px solid var(--mark);
+  border-radius: 8px; padding: 18px 20px 20px;
+  transition: border-color .15s, box-shadow .15s, transform .15s;
+}
+.card:hover { border-color: var(--line-strong); border-top-color: var(--mark); box-shadow: 0 8px 24px rgba(0,0,0,.10); transform: translateY(-2px); }
+.card:focus-within { box-shadow: 0 0 0 3px var(--accent-wash); }
+.card h2 { margin: 0; font-size: 20px; letter-spacing: -0.01em; }
+.card h2 a { color: inherit; text-decoration: none; }
+/* o cartão inteiro é clicável */
+.card h2 a::after { content: ""; position: absolute; inset: 0; border-radius: 8px; }
+.card h2 a:focus-visible { outline: none; }
+.card h2 a:focus-visible::after { outline: 3px solid var(--mark); outline-offset: 2px; }
+.card p { margin: 0; color: var(--ink-soft); }
+.card .quando { color: var(--muted); font-size: 14px; }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: auto; padding-top: 4px; }
+.chip { font: 400 12px var(--mono); border: 1px solid var(--line-strong); color: var(--muted); border-radius: 3px; padding: 2px 7px; white-space: nowrap; }
+.chip.dados { border-color: var(--accent-text); color: var(--accent-text); }
+.go { font-weight: 600; color: var(--accent-text); font-size: 14px; }
+.card:hover .go { text-decoration: underline; }
+
+.nota { margin: 28px 0 0; max-width: 78ch; color: var(--muted); font-size: 14px; }
+@media (prefers-reduced-motion: reduce) { .card { transition: none; } .card:hover { transform: none; } }
+</style>
+</head>
+<body>
+
+<header class="top">
+  <div class="wrap">
+    <nav class="crumbs" aria-label="Navegação">
+      <span>Topografia e georreferenciamento</span>
+      <button type="button" class="btn light small" id="themeBtn">Tema</button>
+    </nav>
+    <div class="top-main">
+      <div>
+        <h1>Ferramentas</h1>
+        <p class="lead">Calculadoras e controles de uso diário. Escolha uma ferramenta abaixo.</p>
+      </div>
+    </div>
+  </div>
+</header>
+
+<main class="wrap">
+  <ul class="grid">
+
+    <!-- ===================== CONTROLE DE PROJETOS ===================== -->
+    <li class="card">
+      <h2><a href="projetos/">Controle de projetos</a></h2>
+      <p>Cadastro de projetos e clientes ligado a uma planilha Google. Gera o ID do projeto (cliente, número e tipo de serviço) e o nome padronizado da pasta, pronto para copiar.</p>
+      <p class="quando">Use ao abrir um novo serviço ou para localizar um projeto antigo por cliente, imóvel ou matrícula.</p>
+      <div class="chips">
+        <span class="chip dados">dados na planilha Google</span>
+        <span class="chip">busca e filtros</span>
+        <span class="chip">celular e computador</span>
+      </div>
+      <span class="go" aria-hidden="true">Abrir →</span>
+    </li>
+
+    <!-- ===================== AJUSTE PPP ===================== -->
+    <li class="card">
+      <h2><a href="ppp/">Ajuste PPP</a></h2>
+      <p>Corrige os pontos coletados com NTRIP somando a diferença entre a coordenada PPP-IBGE da base e a coordenada observada dela. Lê o CSV das coletoras Landstar 7 e 8 e exporta .txt.</p>
+      <p class="quando">Use depois do campo, com o relatório do PPP-IBGE da base em mãos.</p>
+      <div class="chips">
+        <span class="chip">roda no navegador</span>
+        <span class="chip">nada é enviado</span>
+        <span class="chip">Landstar 7 e 8</span>
+      </div>
+      <span class="go" aria-hidden="true">Abrir →</span>
+    </li>
+
+    <!-- ===================== CÁLCULO DE ÁREAS ===================== -->
+    <li class="card">
+      <h2><a href="areas/">Cálculo de áreas</a></h2>
+      <p>Confronta a área da matrícula (menos as áreas subtraídas) com a soma das parcelas certificadas e das demais áreas levantadas. Mostra a diferença em ha e em % e monta o texto pronto para copiar, em ha, m² e alqueire.</p>
+      <p class="quando">Use para conferir se a área levantada fecha com a área registrada na matrícula.</p>
+      <div class="chips">
+        <span class="chip">roda no navegador</span>
+        <span class="chip">nada é enviado</span>
+        <span class="chip">ha · m² · alqueire</span>
+      </div>
+      <span class="go" aria-hidden="true">Abrir →</span>
+    </li>
+
+    <!--
+      PARA ADICIONAR UMA FERRAMENTA NOVA: copie um bloco <li class="card"> inteiro,
+      troque o link (pasta/), o título, o resumo e os chips. Veja o README.md.
+    -->
+  </ul>
+
+  <p class="nota">As ferramentas <strong>Ajuste PPP</strong> e <strong>Cálculo de áreas</strong> processam tudo no próprio navegador: os dados digitados ou importados não saem do seu aparelho. O <strong>Controle de projetos</strong> lê e grava numa planilha Google.</p>
+</main>
+
+<footer class="site-foot wrap">Ferramentas · uso interno</footer>
+
+</body>
+</html>

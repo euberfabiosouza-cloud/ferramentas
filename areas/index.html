@@ -126,10 +126,10 @@ const EXEMPLO = {
     ['Averbação nº 10/33.217 - Desapropriação em favor da União', '0,3049']
   ],
   cert: [
-    ['parcela 01', '143,4241', '6.182,12', '407de6c0-3b7c-480c-a2cf-dcd7ba2cea0f'],
-    ['parcela 02', '64,1739', '4.325,49', 'd9b09c52-a2ed-40b7-8b4c-8b7804059c9a'],
-    ['parcela 03', '23,4225', '2.170,47', 'f6d06f45-5f4c-4d66-9438-689458280093'],
-    ['parcela 04', '146,3771', '6.680,97', '8225cfb8-cf34-4350-8878-72dafc377709']
+    ['Parcela 01', '143,4241', '6.182,12', '407de6c0-3b7c-480c-a2cf-dcd7ba2cea0f'],
+    ['Parcela 02', '64,1739', '4.325,49', 'd9b09c52-a2ed-40b7-8b4c-8b7804059c9a'],
+    ['Parcela 03', '23,4225', '2.170,47', 'f6d06f45-5f4c-4d66-9438-689458280093'],
+    ['Parcela 04', '146,3771', '6.680,97', '8225cfb8-cf34-4350-8878-72dafc377709']
   ],
   lev: [['Estrada Municipal', '4,2173']]
 };
@@ -157,7 +157,7 @@ const cap = s => s.charAt(0).toUpperCase() + s.slice(1);
 function newRow(key) {
   const n = CONFIG.find(c => c.key === key).cols.length;
   const row = Array(n).fill('');
-  if (key === 'cert') row[0] = 'parcela ' + String(data.cert.length + 1).padStart(2, '0');
+  if (key === 'cert') row[0] = 'Parcela ' + String(data.cert.length + 1).padStart(2, '0');
   return row;
 }
 
@@ -205,8 +205,7 @@ function build() {
 
 /* ---------- cálculo ---------- */
 function compute() {
-  // linha só conta se algo além do nome da parcela (coluna 0 de "cert") foi preenchido
-  const rows = k => data[k].filter(r => r.some((v, i) => !(k === 'cert' && i === 0) && String(v).trim() !== ''));
+  const rows = k => data[k].filter(r => r.some(v => String(v).trim() !== ''));
   const mat = rows('mat'), sub = rows('sub'), cert = rows('cert'), lev = rows('lev');
   const r4 = x => Math.round(x * 10000) / 10000;
   const sum = (arr, i) => r4(arr.reduce((s, r) => s + parse(r[i]), 0));
@@ -242,7 +241,7 @@ function text(c, extra) {
   c.sub.forEach(r => L.push(`- ${r[0] || 'Sem nome'}: ${val(parse(r[1]))}`));
   L.push(`= Área Remanescente registrada: ${val(c.remanescente)}`, '');
   L.push('Áreas levantadas:');
-  c.cert.forEach(r => L.push(`+ ${cap(r[0] || 'Parcela')}: ${val(parse(r[1]))}${per(parse(r[2]))}`));
+  c.cert.forEach((r, i) => L.push(`+ ${cap(r[0] || 'Parcela ' + String(i + 1).padStart(2, '0'))}: ${val(parse(r[1]))}${per(parse(r[2]))}`));
   c.lev.forEach(r => L.push(`+ ${r[0] || 'Sem nome'}: ${val(parse(r[1]))}`));
   L.push(`= Área Total Levantada: ${val(c.levantada)}`, '');
   L.push(`Total de Área a ser Registrada: ${val(c.certificada)}${per(c.perCert)}`);
@@ -292,7 +291,7 @@ document.getElementById('copy').addEventListener('click', async () => {
   toast('Resultado copiado');
 });
 document.getElementById('clear').addEventListener('click', () => {
-  CONFIG.forEach(c => { data[c.key] = []; data[c.key].push(newRow(c.key)); });
+  CONFIG.forEach(c => data[c.key] = [Array(c.cols.length).fill('')]);
   build(); update();
 });
 document.getElementById('extra').addEventListener('change', update);

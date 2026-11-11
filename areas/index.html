@@ -123,10 +123,10 @@ const EXEMPLO = {
     ['Averbação nº 10/33.217 - Desapropriação em favor da União', '0,3049']
   ],
   cert: [
-    ['parcela 01', '143,4241', '6.182,12', '407de6c0-3b7c-485c-a2cf-dcd7ba2cea0f'],
-    ['parcela 02', '64,1739', '4.325,49', 'd9b09c92-a2ed-40b7-8b4c-8b7804059c9a'],
+    ['parcela 01', '143,4241', '6.182,12', '407de6c0-3b7c-480c-a2cf-dcd7ba2cea0f'],
+    ['parcela 02', '64,1739', '4.325,49', 'd9b09c52-a2ed-40b7-8b4c-8b7804059c9a'],
     ['parcela 03', '23,4225', '2.170,47', 'f6d06f45-5f4c-4d66-9438-689458280093'],
-    ['parcela 04', '146,3771', '6.680,97', '8225cfb8-cf34-4350-8878-72dafc677709']
+    ['parcela 04', '146,3771', '6.680,97', '8225cfb8-cf34-4350-8878-72dafc377709']
   ],
   lev: [['Estrada Municipal', '4,2173']]
 };
@@ -227,7 +227,7 @@ function compute() {
 }
 
 function text(c, extra) {
-  const val = n => ha(n) + ' ha' + (extra ? ` | ${m2(n)} m² | ${alq(n)} ${alqNome()}` : '');
+  const val = n => ha(n) + ' ha' + (extra ? ` | ${m2(n)} m² | ${alq(n)} alq.` : '');
   const per = n => n > 0 ? ` | Perímetro: ${fmt(n, 2)} m` : '';
   const L = [];
   if (c.mat.length > 1) {

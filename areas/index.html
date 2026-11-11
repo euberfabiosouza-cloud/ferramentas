@@ -36,6 +36,7 @@ button.add:hover { background: var(--accent); border-color: var(--accent); color
 button.x { border: none; background: transparent; color: var(--muted); font-size: 1.1rem; padding: 2px 8px; }
 button.x:hover { color: var(--danger); }
 select { color: var(--ink); background: var(--surface); border: 1px solid var(--line-strong); border-radius: 6px; padding: 5px 8px; }
+select:disabled { opacity: .5; }
 .bar { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; padding: 12px 14px; border-bottom: 1px solid var(--line); }
 .bar label { display: flex; gap: 6px; align-items: center; color: var(--muted); }
 .bar input[type="checkbox"] { accent-color: var(--accent); }
@@ -81,7 +82,8 @@ pre { margin: 0; padding: 14px 16px; white-space: pre-wrap; word-break: break-wo
     <h2>Resultado para copiar</h2>
     <div class="bar">
       <button class="btn primary" id="copy">Copiar resultado</button>
-      <label><input type="checkbox" id="extra" checked> Incluir m² e alqueire no texto</label>
+      <label><input type="checkbox" id="optM2" checked> Incluir m²</label>
+      <label><input type="checkbox" id="optAlq" checked> Incluir alqueire</label>
       <label>Alqueire:
         <select id="alq">
           <option value="48400" selected>4,84 ha (geométrico / mineiro)</option>
@@ -229,8 +231,9 @@ function compute() {
     vazio: !mat.length && !cert.length && !lev.length };
 }
 
-function text(c, extra) {
-  const val = n => ha(n) + ' ha' + (extra ? ` | ${m2(n)} m² | ${alq(n)} alq.` : '');
+// opts: { m2: boolean, alq: boolean }
+function text(c, opts) {
+  const val = n => ha(n) + ' ha' + (opts.m2 ? ` | ${m2(n)} m²` : '') + (opts.alq ? ` | ${alq(n)} alq.` : '');
   const per = n => n > 0 ? ` | Perímetro: ${fmt(n, 2)} m` : '';
   const L = [];
   if (c.mat.length > 1) {
@@ -268,8 +271,10 @@ function visual(c) {
 
 function update() {
   const c = compute();
+  const optAlq = document.getElementById('optAlq').checked;
+  document.getElementById('alq').disabled = !optAlq;
   document.getElementById('out').textContent = c.vazio ? 'Preencha as tabelas para ver o resultado.'
-    : text(c, document.getElementById('extra').checked);
+    : text(c, { m2: document.getElementById('optM2').checked, alq: optAlq });
   document.getElementById('calc').innerHTML = visual(c);
 }
 
@@ -294,8 +299,7 @@ document.getElementById('clear').addEventListener('click', () => {
   CONFIG.forEach(c => data[c.key] = [Array(c.cols.length).fill('')]);
   build(); update();
 });
-document.getElementById('extra').addEventListener('change', update);
-document.getElementById('alq').addEventListener('change', update);
+['optM2', 'optAlq', 'alq'].forEach(id => document.getElementById(id).addEventListener('change', update));
 
 CONFIG.forEach(c => data[c.key] = EXEMPLO[c.key].map(r => r.slice()));
 build(); update();

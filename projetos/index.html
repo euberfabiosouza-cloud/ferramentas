@@ -316,18 +316,29 @@ const pad3 = n => String(n).padStart(3, '0');
 const dash = '<span class="dash">—</span>';
 
 /* ---------- Comunicação com a planilha ---------- */
+// Garante que "criado" fique sempre como "AAAA-MM", seja qual for o formato recebido
+// (texto "2026-02", ISO "2026-02-01T03:00:00.000Z" ou data completa do JavaScript)
+function fixData(d) {
+  d.projetos.forEach(p => {
+    const s = String(p.criado || '');
+    const x = new Date(s);
+    p.criado = /^\d{4}-\d{2}/.test(s) ? s.slice(0, 7)
+      : isNaN(x) ? '' : x.getFullYear() + '-' + pad3(x.getMonth() + 1).slice(1);
+  });
+  return d;
+}
 async function apiGet() {
   const r = await fetch(API_URL + (API_URL.includes('?') ? '&' : '?') + 't=' + Date.now());
   const j = await r.json();
   if (!j.ok) throw new Error(j.error || 'Erro ao ler a planilha.');
-  return j.data;
+  return fixData(j.data);
 }
 async function apiPost(payload) {
   // text/plain evita o pré-voo CORS que o Apps Script não responde
   const r = await fetch(API_URL, { method: 'POST', body: JSON.stringify(payload) });
   const j = await r.json();
   if (!j.ok) throw new Error(j.error || 'Erro ao gravar na planilha.');
-  return j.data;
+  return fixData(j.data);
 }
 const NET_ERR = 'Não foi possível falar com a planilha. Confira sua conexão e a URL em API_URL.';
 const friendly = e => (e instanceof TypeError || /Failed to fetch|NetworkError|JSON/i.test(String(e.message))) ? NET_ERR : e.message;
@@ -549,7 +560,7 @@ function openProjeto(row) {
   $('dlClientes').innerHTML = clientes().map(c => `<option value="${esc(c.nome)}"></option>`).join('');
 
   const hoje = new Date();
-  const criado = p ? p.criado : `${hoje.getFullYear()}-${pad3(hoje.getMonth() + 1).slice(1)}-01`;
+  const criado = p ? p.criado : `${hoje.getFullYear()}-${pad3(hoje.getMonth() + 1).slice(1)}`;
   fillSelects(p ? p.servico : '', criado.slice(0, 4));
   $('fpCliente').value = p ? p.cliente : '';
   $('fpImovel').value = p ? p.imovel : '';
@@ -611,7 +622,7 @@ async function saveProjeto(ev) {
     // novo projeto: mostra o nome da pasta gerado na coluna H
     const novo = projetos().find(p => !antes.has(p.row));
     if (novo && novo.pasta) {
-            $('dsCopy').dataset.copy = novo.pasta;
+      $('dsCopy').dataset.copy = novo.pasta;
       $('dlgSalvo').showModal();
     }
   });

@@ -125,7 +125,7 @@ const EXEMPLO = {
     ['Averbação nº 10/33.217 - Desapropriação em favor da União', '0,3049']
   ],
   cert: [
-    ['parcela 01', '143,4241', '6.182,12', '407de6c0-3b7c-480c-a2cf-dcd7ba2cea0f'],
+    ['', '143,4241', '6.182,12', '407de6c0-3b7c-480c-a2cf-dcd7ba2cea0f'],
     ['parcela 02', '64,1739', '4.325,49', 'd9b09c52-a2ed-40b7-8b4c-8b7804059c9a'],
     ['parcela 03', '23,4225', '2.170,47', 'f6d06f45-5f4c-4d66-9438-689458280093'],
     ['parcela 04', '146,3771', '6.680,97', '8225cfb8-cf34-4350-8878-72dafc377709']
@@ -156,7 +156,7 @@ const cap = s => s.charAt(0).toUpperCase() + s.slice(1);
 function newRow(key) {
   const n = CONFIG.find(c => c.key === key).cols.length;
   const row = Array(n).fill('');
-  if (key === 'cert') row[0] = 'parcela ' + String(data.cert.length + 1).padStart(2, '0');
+if (key === 'cert') row[0] = 'parcela ' + String(data.cert.filter(r => r.some(v => String(v).trim() !== '')).length + 1).padStart(2, '0');
   return row;
 }
 
@@ -289,8 +289,8 @@ document.getElementById('copy').addEventListener('click', async () => {
   }
   toast('Resultado copiado');
 });
-document.getElementById('clear').addEventListener('click', () => {
-  CONFIG.forEach(c => data[c.key] = [newRow(c.key)]);
+  document.getElementById('clear').addEventListener('click', () => {
+  CONFIG.forEach(c => data[c.key] = [Array(c.cols.length).fill('')]);
   build(); update();
 });
 document.getElementById('extra').addEventListener('change', update);

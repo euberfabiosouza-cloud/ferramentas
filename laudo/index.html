@@ -47,6 +47,15 @@ main.wrap { padding-top: 24px; padding-bottom: 40px; }
 .owner-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 8px; font-size: 13px; font-weight: 600; }
 .owner .field:last-child { margin-bottom: 0; }
 
+.combo { position: relative; }
+.combo input { padding-right: 34px; }
+.combo-btn { position: absolute; right: 1px; top: 1px; bottom: 1px; width: 32px; border: 0; background: transparent; color: var(--ink, #1a1a1a); cursor: pointer; font-size: 12px; border-radius: 0 6px 6px 0; }
+.combo-list { position: absolute; left: 0; right: 0; bottom: calc(100% + 4px); z-index: 30; max-height: 220px; overflow-y: auto; margin: 0; padding: 4px; list-style: none; background: var(--surface, #fff); color: var(--ink, #1a1a1a); border: 1px solid var(--line, #c9c9c9); border-radius: 6px; box-shadow: 0 8px 24px rgba(0,0,0,.22); }
+.combo-list[hidden] { display: none; }
+.combo-list li { padding: 7px 10px; border-radius: 4px; cursor: pointer; font-size: 14px; }
+.combo-list li:hover, .combo-list li.active { background: var(--accent-wash, rgba(42,109,244,.16)); }
+.combo-list li.empty { opacity: .7; cursor: default; }
+
 /* Folhas de papel: sempre claras, mesmo no tema escuro, porque representam o documento impresso */
 .docs { display: flex; flex-direction: column; gap: 20px; min-width: 0; }
 .sheet {
@@ -168,87 +177,11 @@ main.wrap { padding-top: 24px; padding-bottom: 40px; }
       <h3>Local e data</h3>
       <div class="row crea">
         <div class="field"><label for="uf">UF</label><select id="uf" data-k="uf"></select></div>
-        <div class="field"><label for="cidade">Cidade</label><input id="cidade" data-k="cidade" list="cidadesES" placeholder="Digite ou escolha" autocomplete="off">
-        <datalist id="cidadesES">
-        <option value="Afonso Cláudio">
-        <option value="Água Doce do Norte">
-        <option value="Águia Branca">
-        <option value="Alegre">
-        <option value="Alfredo Chaves">
-        <option value="Alto Rio Novo">
-        <option value="Anchieta">
-        <option value="Apiacá">
-        <option value="Aracruz">
-        <option value="Atilio Vivacqua">
-        <option value="Baixo Guandu">
-        <option value="Barra de São Francisco">
-        <option value="Boa Esperança">
-        <option value="Bom Jesus do Norte">
-        <option value="Brejetuba">
-        <option value="Cachoeiro de Itapemirim">
-        <option value="Cariacica">
-        <option value="Castelo">
-        <option value="Colatina">
-        <option value="Conceição da Barra">
-        <option value="Conceição do Castelo">
-        <option value="Divino de São Lourenço">
-        <option value="Domingos Martins">
-        <option value="Dores do Rio Preto">
-        <option value="Ecoporanga">
-        <option value="Fundão">
-        <option value="Governador Lindenberg">
-        <option value="Guaçuí">
-        <option value="Guarapari">
-        <option value="Ibatiba">
-        <option value="Ibiraçu">
-        <option value="Ibitirama">
-        <option value="Iconha">
-        <option value="Irupi">
-        <option value="Itaguaçu">
-        <option value="Itapemirim">
-        <option value="Itarana">
-        <option value="Iúna">
-        <option value="Jaguaré">
-        <option value="Jerônimo Monteiro">
-        <option value="João Neiva">
-        <option value="Laranja da Terra">
-        <option value="Linhares">
-        <option value="Mantenópolis">
-        <option value="Marataízes">
-        <option value="Marechal Floriano">
-        <option value="Marilândia">
-        <option value="Mimoso do Sul">
-        <option value="Montanha">
-        <option value="Mucurici">
-        <option value="Muniz Freire">
-        <option value="Muqui">
-        <option value="Nova Venécia">
-        <option value="Pancas">
-        <option value="Pedro Canário">
-        <option value="Pinheiros">
-        <option value="Piúma">
-        <option value="Ponto Belo">
-        <option value="Presidente Kennedy">
-        <option value="Rio Bananal">
-        <option value="Rio Novo do Sul">
-        <option value="Santa Leopoldina">
-        <option value="Santa Maria de Jetibá">
-        <option value="Santa Teresa">
-        <option value="São Domingos do Norte">
-        <option value="São Gabriel da Palha">
-        <option value="São José do Calçado">
-        <option value="São Mateus">
-        <option value="São Roque do Canaã">
-        <option value="Serra">
-        <option value="Sooretama">
-        <option value="Vargem Alta">
-        <option value="Venda Nova do Imigrante">
-        <option value="Viana">
-        <option value="Vila Pavão">
-        <option value="Vila Valério">
-        <option value="Vila Velha">
-        <option value="Vitória">
-        </datalist></div>
+        <div class="field"><label for="cidade">Cidade</label><div class="combo">
+          <input id="cidade" data-k="cidade" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="cidadeList" placeholder="Digite ou escolha" autocomplete="off">
+          <button type="button" class="combo-btn" id="cidadeBtn" tabindex="-1" aria-label="Mostrar cidades do Espírito Santo">&#9662;</button>
+          <ul class="combo-list" id="cidadeList" role="listbox" hidden></ul>
+        </div></div>
       </div>
       <div class="field"><label for="data">Data</label><input id="data" data-k="data" type="date"></div>
     </aside>
@@ -530,6 +463,60 @@ main.wrap { padding-top: 24px; padding-bottom: 40px; }
     var last = document.getElementById('ownNome' + (owners.length - 1));
     if (last) last.focus();
   });
+
+  /* Cidade: campo livre com lista suspensa dos municípios do ES */
+  var CIDADES = ["Afonso Cláudio", "Água Doce do Norte", "Águia Branca", "Alegre", "Alfredo Chaves", "Alto Rio Novo", "Anchieta", "Apiacá", "Aracruz", "Atilio Vivacqua", "Baixo Guandu", "Barra de São Francisco", "Boa Esperança", "Bom Jesus do Norte", "Brejetuba", "Cachoeiro de Itapemirim", "Cariacica", "Castelo", "Colatina", "Conceição da Barra", "Conceição do Castelo", "Divino de São Lourenço", "Domingos Martins", "Dores do Rio Preto", "Ecoporanga", "Fundão", "Governador Lindenberg", "Guaçuí", "Guarapari", "Ibatiba", "Ibiraçu", "Ibitirama", "Iconha", "Irupi", "Itaguaçu", "Itapemirim", "Itarana", "Iúna", "Jaguaré", "Jerônimo Monteiro", "João Neiva", "Laranja da Terra", "Linhares", "Mantenópolis", "Marataízes", "Marechal Floriano", "Marilândia", "Mimoso do Sul", "Montanha", "Mucurici", "Muniz Freire", "Muqui", "Nova Venécia", "Pancas", "Pedro Canário", "Pinheiros", "Piúma", "Ponto Belo", "Presidente Kennedy", "Rio Bananal", "Rio Novo do Sul", "Santa Leopoldina", "Santa Maria de Jetibá", "Santa Teresa", "São Domingos do Norte", "São Gabriel da Palha", "São José do Calçado", "São Mateus", "São Roque do Canaã", "Serra", "Sooretama", "Vargem Alta", "Venda Nova do Imigrante", "Viana", "Vila Pavão", "Vila Valério", "Vila Velha", "Vitória"];
+  (function () {
+    var inp = document.getElementById('cidade');
+    var list = document.getElementById('cidadeList');
+    var btn = document.getElementById('cidadeBtn');
+    var items = [], idx = -1;
+    function norm(t) { return t.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase(); }
+    function setActive(i) {
+      var lis = list.querySelectorAll('li[role="option"]');
+      if (!lis.length) return;
+      idx = (i + lis.length) % lis.length;
+      Array.prototype.forEach.call(lis, function (li, n) { li.classList.toggle('active', n === idx); });
+      lis[idx].scrollIntoView({ block: 'nearest' });
+    }
+    function render(filter) {
+      var q = norm(filter || '');
+      items = CIDADES.filter(function (c) { return norm(c).indexOf(q) > -1; });
+      list.innerHTML = ''; idx = -1;
+      items.forEach(function (c) {
+        var li = document.createElement('li');
+        li.setAttribute('role', 'option'); li.textContent = c;
+        li.addEventListener('mousedown', function (e) { e.preventDefault(); choose(c); });
+        list.appendChild(li);
+      });
+      if (!items.length) {
+        var e = document.createElement('li');
+        e.className = 'empty'; e.textContent = 'Sem sugestão. O texto digitado será usado.';
+        list.appendChild(e);
+      }
+    }
+    function open(filter) { render(filter); list.hidden = false; inp.setAttribute('aria-expanded', 'true'); }
+    function close() { list.hidden = true; inp.setAttribute('aria-expanded', 'false'); idx = -1; }
+    function choose(c) {
+      inp.value = c;
+      inp.dispatchEvent(new Event('input', { bubbles: true }));
+      close();
+    }
+    inp.addEventListener('focus', function () { open(''); });
+    inp.addEventListener('click', function () { if (list.hidden) open(''); });
+    inp.addEventListener('input', function () { open(inp.value); });
+    inp.addEventListener('blur', close);
+    inp.addEventListener('keydown', function (e) {
+      if (e.key === 'ArrowDown') { e.preventDefault(); if (list.hidden) open(inp.value); else setActive(idx + 1); }
+      else if (e.key === 'ArrowUp') { e.preventDefault(); if (!list.hidden) setActive(idx - 1); }
+      else if (e.key === 'Enter' && !list.hidden && idx > -1) { e.preventDefault(); choose(items[idx]); }
+      else if (e.key === 'Escape') { close(); }
+    });
+    btn.addEventListener('mousedown', function (e) { e.preventDefault(); });
+    btn.addEventListener('click', function () {
+      if (list.hidden) { inp.focus(); open(''); } else { close(); }
+    });
+  })();
 
   /* Eventos */
   inputs.forEach(function (inp) {

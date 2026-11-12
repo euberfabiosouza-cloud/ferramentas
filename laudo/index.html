@@ -1,0 +1,616 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>Laudo técnico e Declaração do Proprietário · Ferramentas</title>
+<meta name="description" content="Gera o laudo técnico do responsável técnico e a declaração do proprietário para planta gráfica, com campos preenchíveis e texto editável.">
+<link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&family=Schibsted+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/comum.css">
+<script src="../assets/comum.js"></script>
+<style>
+/* Específico desta ferramenta. Usa as variáveis de comum.css, com fallback caso faltem. */
+main.wrap { padding-top: 24px; padding-bottom: 40px; }
+
+.layout { display: grid; grid-template-columns: minmax(280px, 380px) minmax(0, 1fr); gap: 20px; align-items: start; }
+@media (max-width: 900px) { .layout { grid-template-columns: 1fr; } }
+
+.panel { background: var(--surface, #fff); color: var(--ink, #1a1a1a); border: 1px solid var(--line, #d9d9d9); border-radius: 8px; padding: 18px; }
+.panel h2 { margin: 0 0 12px; font-size: 16px; }
+.panel h3 { margin: 18px 0 8px; font-size: 14px; }
+.panel h3:first-of-type { margin-top: 0; }
+
+.formcol { position: sticky; top: 12px; max-height: calc(100vh - 24px); overflow-y: auto; }
+@media (max-width: 900px) { .formcol { position: static; max-height: none; } }
+
+.field { display: flex; flex-direction: column; gap: 4px; margin-bottom: 10px; }
+.field label { font-size: 13px; font-weight: 500; }
+.field input, .field select {
+  font: inherit; font-size: 14px; padding: 8px 10px; border-radius: 6px;
+  border: 1px solid var(--line, #c9c9c9); background: var(--surface, #fff); color: var(--ink, #1a1a1a);
+  width: 100%; min-width: 0;
+}
+.field input:focus-visible, .field select:focus-visible { outline: 2px solid var(--accent, #2a6df4); outline-offset: 1px; }
+.row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.row.r3 { grid-template-columns: 1fr 1fr 1fr; }
+.row.crea { grid-template-columns: 90px 1fr; }
+.hint { font-size: 12px; opacity: .75; margin: -4px 0 10px; }
+
+.actions { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 14px; }
+.note { font-size: 13px; opacity: .85; margin: 0 0 14px; line-height: 1.45; }
+
+.owner { border: 1px solid var(--line, #d0d0d0); border-radius: 6px; padding: 10px; margin-bottom: 10px; }
+.owner-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 8px; font-size: 13px; font-weight: 600; }
+.owner .field:last-child { margin-bottom: 0; }
+
+/* Folhas de papel: sempre claras, mesmo no tema escuro, porque representam o documento impresso */
+.docs { display: flex; flex-direction: column; gap: 20px; min-width: 0; }
+.sheet {
+  background: #fff; color: #111; border: 1px solid var(--line, #d0d0d0); border-radius: 4px;
+  padding: 48px 56px; box-shadow: 0 1px 3px rgba(0,0,0,.12);
+  font-family: "Times New Roman", Times, "Liberation Serif", serif; font-size: 12.5pt; line-height: 1.55;
+  text-align: justify; outline: none;
+  cursor: text; -webkit-user-select: text; user-select: text; -webkit-user-modify: read-write;
+}
+.sheet:focus-visible { outline: 2px solid var(--accent, #2a6df4); outline-offset: 2px; }
+@media (max-width: 640px) { .sheet { padding: 24px 18px; font-size: 12pt; } }
+.sheet h2 { text-align: center; font-size: 14pt; margin: 0 0 22px; letter-spacing: .02em; }
+.sheet p { margin: 0 0 12px; }
+.sheet .data { text-align: left; margin-top: 22px; }
+.sheet .sign { width: 340px; max-width: 100%; margin: 54px auto 0; text-align: center; line-height: 1.4; }
+.sheet .sign + .sign { margin-top: 40px; }
+.sheet .sign { break-inside: avoid; }
+.sheet .sign .line { border-top: 1px solid #111; margin-bottom: 4px; }
+
+/* Campos substituídos: vazios mostram o rótulo entre colchetes */
+.fld:empty::before { content: attr(data-ph); background: #fff1b8; color: #6b5200; border-radius: 2px; padding: 0 2px; }
+
+.sheet-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin: 0 0 6px; flex-wrap: wrap; }
+.sheet-label { font-size: 13px; font-weight: 600; margin: 0; color: var(--ink, #1a1a1a); }
+
+/* Impressão: só as folhas, uma por página */
+@page { size: A4; margin: 22mm 24mm; }
+@media print {
+  body { background: #fff !important; }
+  header.top, footer.site-foot, .formcol, .sheet-head, .toolbar-print { display: none !important; }
+  main.wrap, .layout { display: block; padding: 0 !important; margin: 0 !important; max-width: none !important; }
+  .docs { display: block; }
+  .sheet { border: 0; box-shadow: none; padding: 0; border-radius: 0; break-after: page; page-break-after: always; }
+  .sheet:last-child { break-after: auto; page-break-after: auto; }
+  .fld:empty::before { background: none; color: #111; padding: 0; }
+}
+</style>
+</head>
+<body>
+
+<header class="top">
+  <div class="wrap">
+    <nav class="crumbs" aria-label="Navegação">
+      <a href="../">← Todas as ferramentas</a>
+      <button type="button" class="btn light small" id="themeBtn">Tema</button>
+    </nav>
+    <div class="top-main">
+      <div>
+        <h1>Laudo técnico e Declaração do Proprietário</h1>
+        <p class="lead">Preencha os campos ao lado e o texto se monta ao lado. Se precisar, clique no documento e edite qualquer trecho. Nada é gravado: ao fechar ou recarregar a página, tudo é apagado.</p>
+      </div>
+    </div>
+  </div>
+</header>
+
+<main class="wrap">
+  <div class="layout">
+
+    <!-- ===== Formulário ===== -->
+    <aside class="panel formcol" aria-label="Campos do documento">
+      <div class="actions">
+        <button class="btn ghost" type="button" id="btnClear">Limpar tudo</button>
+      </div>
+      <p class="note" id="status" role="status" aria-live="polite">Campos em branco aparecem destacados em amarelo no documento.</p>
+
+      <h3>Responsável técnico</h3>
+      <div class="field"><label for="resp">Nome</label><input id="resp" data-k="resp" value="Ítalo José Zago de Souza Filho" autocomplete="off"></div>
+      <div class="field"><label for="titulo">Título profissional</label><input id="titulo" data-k="titulo" value="Engenheiro Agrimensor" autocomplete="off"></div>
+      <div class="row crea">
+        <div class="field"><label for="creaUf">CREA-UF</label><select id="creaUf" data-k="creaUf"></select></div>
+        <div class="field"><label for="creaNum">Nº do CREA</label><input id="creaNum" data-k="creaNum" value="013008/D" autocomplete="off"></div>
+      </div>
+      <div class="row">
+        <div class="field"><label for="art">Nº da ART</label><input id="art" data-k="art" autocomplete="off"></div>
+        <div class="field"><label for="incra">Credenciamento INCRA</label><input id="incra" data-k="incra" value="ERO" autocomplete="off"></div>
+      </div>
+
+      <h3>Imóvel</h3>
+      <div class="field"><label for="imovel">Nome do imóvel</label><input id="imovel" data-k="imovel" autocomplete="off"></div>
+      <div class="row">
+        <div class="field"><label for="mat">Nº da matrícula</label><input id="mat" data-k="mat" autocomplete="off"></div>
+        <div class="field"><label for="sncr">Nº SNCR</label><input id="sncr" data-k="sncr" inputmode="numeric" placeholder="000.000.000.000-0" autocomplete="off"></div>
+      </div>
+
+      <h3>Descrição da matrícula</h3>
+      <div class="field">
+        <label for="opt">Situação da matrícula</label>
+        <select id="opt">
+          <option value="1">Opção 1: sem azimutes/rumos e distâncias</option>
+          <option value="2">Opção 2: com azimutes/rumos e distâncias</option>
+        </select>
+      </div>
+
+      <h3>Áreas</h3>
+      <div class="row">
+        <div class="field"><label for="areaReg">Área registrada (ha)</label><input id="areaReg" data-k="areaReg" inputmode="decimal" placeholder="0,0000" autocomplete="off"></div>
+        <div class="field"><label for="areaApu">Área apurada (ha)</label><input id="areaApu" data-k="areaApu" inputmode="decimal" placeholder="0,0000" autocomplete="off"></div>
+      </div>
+      <div class="row r3">
+        <div class="field"><label for="sentido">Diferença</label>
+          <select id="sentido" data-k="sentido" data-calc>
+            <option value="">—</option>
+            <option value="a maior">a maior</option>
+            <option value="a menor">a menor</option>
+          </select>
+        </div>
+        <div class="field"><label for="dif">Em ha</label><input id="dif" data-k="dif" data-calc inputmode="decimal" autocomplete="off"></div>
+        <div class="field"><label for="difpct">Em %</label><input id="difpct" data-k="difpct" data-calc inputmode="decimal" autocomplete="off"></div>
+      </div>
+      <p class="hint">A diferença é calculada ao preencher as áreas. Você pode ajustar os três campos manualmente.</p>
+
+      <h3>Divisas</h3>
+      <div class="field"><label for="divisa">Materialização das divisas</label><input id="divisa" data-k="divisa" placeholder="ex.: cerca de arame antiga" autocomplete="off"></div>
+
+      <h3>Proprietários</h3>
+      <div id="ownersForm"></div>
+      <div class="actions"><button class="btn ghost small" type="button" id="btnAddOwner">+ Adicionar proprietário</button></div>
+
+      <h3>Local e data</h3>
+      <div class="row crea">
+        <div class="field"><label for="uf">UF</label><select id="uf" data-k="uf"></select></div>
+        <div class="field"><label for="cidade">Cidade</label><input id="cidade" data-k="cidade" list="cidadesES" placeholder="Digite ou escolha" autocomplete="off">
+        <datalist id="cidadesES">
+        <option value="Afonso Cláudio">
+        <option value="Água Doce do Norte">
+        <option value="Águia Branca">
+        <option value="Alegre">
+        <option value="Alfredo Chaves">
+        <option value="Alto Rio Novo">
+        <option value="Anchieta">
+        <option value="Apiacá">
+        <option value="Aracruz">
+        <option value="Atilio Vivacqua">
+        <option value="Baixo Guandu">
+        <option value="Barra de São Francisco">
+        <option value="Boa Esperança">
+        <option value="Bom Jesus do Norte">
+        <option value="Brejetuba">
+        <option value="Cachoeiro de Itapemirim">
+        <option value="Cariacica">
+        <option value="Castelo">
+        <option value="Colatina">
+        <option value="Conceição da Barra">
+        <option value="Conceição do Castelo">
+        <option value="Divino de São Lourenço">
+        <option value="Domingos Martins">
+        <option value="Dores do Rio Preto">
+        <option value="Ecoporanga">
+        <option value="Fundão">
+        <option value="Governador Lindenberg">
+        <option value="Guaçuí">
+        <option value="Guarapari">
+        <option value="Ibatiba">
+        <option value="Ibiraçu">
+        <option value="Ibitirama">
+        <option value="Iconha">
+        <option value="Irupi">
+        <option value="Itaguaçu">
+        <option value="Itapemirim">
+        <option value="Itarana">
+        <option value="Iúna">
+        <option value="Jaguaré">
+        <option value="Jerônimo Monteiro">
+        <option value="João Neiva">
+        <option value="Laranja da Terra">
+        <option value="Linhares">
+        <option value="Mantenópolis">
+        <option value="Marataízes">
+        <option value="Marechal Floriano">
+        <option value="Marilândia">
+        <option value="Mimoso do Sul">
+        <option value="Montanha">
+        <option value="Mucurici">
+        <option value="Muniz Freire">
+        <option value="Muqui">
+        <option value="Nova Venécia">
+        <option value="Pancas">
+        <option value="Pedro Canário">
+        <option value="Pinheiros">
+        <option value="Piúma">
+        <option value="Ponto Belo">
+        <option value="Presidente Kennedy">
+        <option value="Rio Bananal">
+        <option value="Rio Novo do Sul">
+        <option value="Santa Leopoldina">
+        <option value="Santa Maria de Jetibá">
+        <option value="Santa Teresa">
+        <option value="São Domingos do Norte">
+        <option value="São Gabriel da Palha">
+        <option value="São José do Calçado">
+        <option value="São Mateus">
+        <option value="São Roque do Canaã">
+        <option value="Serra">
+        <option value="Sooretama">
+        <option value="Vargem Alta">
+        <option value="Venda Nova do Imigrante">
+        <option value="Viana">
+        <option value="Vila Pavão">
+        <option value="Vila Valério">
+        <option value="Vila Velha">
+        <option value="Vitória">
+        </datalist></div>
+      </div>
+      <div class="field"><label for="data">Data</label><input id="data" data-k="data" type="date"></div>
+    </aside>
+
+    <!-- ===== Documentos ===== -->
+    <section class="docs" aria-label="Pré-visualização editável">
+      <div>
+        <div class="sheet-head"><p class="sheet-label">Laudo técnico (clique no texto para editar)</p><button class="btn primary small" type="button" data-copy="laudo">Copiar texto</button></div>
+        <article class="sheet" id="laudo" contenteditable="true" spellcheck="true" lang="pt-BR">
+          <h2>LAUDO TÉCNICO</h2>
+
+          <p>Eu, <span class="fld" data-f="resp" data-ph="[NOME DO RESPONSÁVEL TÉCNICO]"></span>, <span class="fld" data-f="titulo" data-ph="[TÍTULO PROFISSIONAL]"></span>, CREA-<span class="fld" data-f="creaUf" data-ph="[UF]"></span> nº <span class="fld" data-f="creaNum" data-ph="[Nº CREA]"></span>, Responsável Técnico pelo levantamento do imóvel objeto da matrícula nº <span class="fld" data-f="mat" data-ph="[Nº MATRÍCULA]"></span>, ATESTO, para os devidos fins e sob as penas da lei:</p>
+
+          <p>1. Realizei pessoalmente o levantamento e são corretos as coordenadas, altitudes, azimutes, distâncias e os dados dos confrontantes constantes da planta e do memorial descritivo que acompanham este laudo.</p>
+
+          <p id="p2"></p>
+
+          <p>3. O imóvel denominado <span class="fld" data-f="imovel" data-ph="[NOME DO IMÓVEL]"></span>, cadastrado no SNCR sob o nº <span class="fld" data-f="sncr" data-ph="[Nº SNCR]"></span>, tem área registrada de <span class="fld" data-f="areaReg" data-ph="[ÁREA REGISTRADA]"></span> ha. O levantamento georreferenciado, executado conforme a norma técnica do INCRA, apurou <span class="fld" data-f="areaApu" data-ph="[ÁREA APURADA]"></span> ha, diferença <span class="fld" data-f="sentido" data-ph="[a maior / a menor]"></span> de <span class="fld" data-f="dif" data-ph="[DIFERENÇA]"></span> ha ou <span class="fld" data-f="difpct" data-ph="[DIFERENÇA EM %]"></span>, o que torna necessária a retificação da área.</p>
+
+          <p>4. O levantamento foi realizado intramuros, pois as divisas estão materializadas por <span class="fld" data-f="divisa" data-ph="[TIPO DE DIVISA]"></span>, respeitada pelos confrontantes há muitos anos.</p>
+
+          <p>5. <span class="pl" data-s="O proprietário optou" data-p="Os proprietários optaram"></span> pela retificação administrativa perante o Registro de Imóveis, nos termos do art. 213, II, da Lei nº 6.015/1973. Não tenho conhecimento de ação judicial em curso que possa afetar os dados apresentados.</p>
+
+          <p>6. Estou ciente de que, se comprovada a falsidade dos fatos constantes do memorial descritivo, responderei pelos prejuízos causados, sem prejuízo das sanções disciplinares e penais, nos termos do § 14 do art. 213 da Lei nº 6.015/1973.</p>
+
+          <p class="data"><span class="fld" data-f="cidade" data-ph="[CIDADE]"></span> - <span class="fld" data-f="uf" data-ph="[UF]"></span>, <span class="fld" data-f="dataFmt" data-ph="[DATA]"></span>.</p>
+
+          <div class="sign">
+            <div class="line"></div>
+            <span class="fld" data-f="resp" data-ph="[NOME DO RESPONSÁVEL TÉCNICO]"></span><br>
+            <span class="fld" data-f="titulo" data-ph="[TÍTULO PROFISSIONAL]"></span><br>
+            CREA-<span class="fld" data-f="creaUf" data-ph="[UF]"></span> nº <span class="fld" data-f="creaNum" data-ph="[Nº CREA]"></span><br>
+            ART nº <span class="fld" data-f="art" data-ph="[Nº ART]"></span><br>
+            Código de credenciamento INCRA: <span class="fld" data-f="incra" data-ph="[CÓDIGO]"></span><br>
+            Responsável Técnico
+          </div>
+        </article>
+      </div>
+
+      <div>
+        <div class="sheet-head"><p class="sheet-label">Declaração do proprietário (clique no texto para editar)</p><button class="btn primary small" type="button" data-copy="declaracao">Copiar texto</button></div>
+        <article class="sheet" id="declaracao" contenteditable="true" spellcheck="true" lang="pt-BR">
+          <h2>DECLARAÇÃO DO PROPRIETÁRIO</h2>
+
+          <p><span id="ownIntro"></span>, <span class="pl" data-s="proprietário" data-p="proprietários"></span> do imóvel objeto da matrícula nº <span class="fld" data-f="mat" data-ph="[Nº MATRÍCULA]"></span>, <span class="pl" data-s="DECLARO" data-p="DECLARAMOS"></span>, para os devidos fins e sob as penas da lei:</p>
+
+          <p>1. <span class="pl" data-s="Tenho" data-p="Temos"></span> pleno conhecimento do Levantamento Topográfico Planialtimétrico Georreferenciado elaborado pelo <span class="fld" data-f="titulo" data-ph="[TÍTULO PROFISSIONAL]"></span> <span class="fld" data-f="resp" data-ph="[NOME DO RESPONSÁVEL TÉCNICO]"></span>, CREA-<span class="fld" data-f="creaUf" data-ph="[UF]"></span> nº <span class="fld" data-f="creaNum" data-ph="[Nº CREA]"></span>, e com ele <span class="pl" data-s="concordo" data-p="concordamos"></span>.</p>
+
+          <p>2. O levantamento observou as normas técnicas do INCRA e atendeu ao disposto na Lei nº 10.267/2001, regulamentada pelo Decreto nº 4.449/2002 e suas alterações.</p>
+
+          <p>3. O levantamento foi realizado em campo (in loco), respeitando os limites existentes no local, e não exclusivamente com base na matrícula ou transcrição do imóvel, sendo respeitadas as divisas e confrontações com os imóveis vizinhos, conforme a planta e o memorial descritivo, sem litígio ou discordância com os confrontantes.</p>
+
+          <p>4. O polígono apresentado na planta e no memorial descritivo pertence integralmente ao imóvel da matrícula nº <span class="fld" data-f="mat" data-ph="[Nº MATRÍCULA]"></span>, não havendo outras matrículas ou transcrições que componham a área levantada.</p>
+
+          <p>5. Foi registrada e devidamente recolhida a ART nº <span class="fld" data-f="art" data-ph="[Nº ART]"></span>, referente a este serviço.</p>
+
+          <p>6. <span class="pl" data-s="Tenho" data-p="Temos"></span> ciência do § 14 do art. 213 da Lei nº 6.015/1973, segundo o qual, verificada a qualquer tempo a falsidade dos fatos constantes do memorial descritivo, respondem os requerentes e o profissional que o elaborou pelos prejuízos causados. Assim, <span class="pl" data-s="atesto" data-p="atestamos"></span> serem verdadeiras e exatas as informações apresentadas na planta e no memorial descritivo.</p>
+
+          <p>Por ser a expressão da verdade, <span class="pl" data-s="firmo" data-p="firmamos"></span> a presente declaração.</p>
+
+          <p class="data"><span class="fld" data-f="cidade" data-ph="[CIDADE]"></span> - <span class="fld" data-f="uf" data-ph="[UF]"></span>, <span class="fld" data-f="dataFmt" data-ph="[DATA]"></span>.</p>
+
+          <div id="ownSign"></div>
+        </article>
+      </div>
+    </section>
+
+  </div>
+</main>
+
+<footer class="site-foot wrap">
+  <a href="../">← Voltar para todas as ferramentas</a>
+</footer>
+
+<script>
+(function () {
+  'use strict';
+
+  var UFS = ['AC','AL','AP','AM','BA','CE','DF','ES','GO','MA','MT','MS','MG','PA','PB','PR','PE','PI','RJ','RN','RS','RO','RR','SC','SP','SE','TO'];
+
+  var OPCAO = {
+    '1': '2. A matrícula possui descrição tabular precária, pois não traz azimutes (ou rumos) e distâncias do perímetro, sendo necessária a atualização da descrição com base no levantamento georreferenciado.',
+    '2': '2. A matrícula, embora traga azimutes (ou rumos) e distâncias do perímetro, não contém as coordenadas dos vértices nem está referenciada ao Sistema Geodésico Brasileiro, o que impede a localização inequívoca do imóvel, sendo necessária a atualização da descrição com base no levantamento georreferenciado.'
+  };
+
+  var inputs = Array.prototype.slice.call(document.querySelectorAll('[data-k]'));
+  var optSel = document.getElementById('opt');
+  var p2 = document.getElementById('p2');
+  var statusEl = document.getElementById('status');
+  var calcDirty = false;
+  var values = {};
+
+  /* UFs nos seletores */
+  ['creaUf', 'uf'].forEach(function (id) {
+    var sel = document.getElementById(id);
+    var blank = document.createElement('option');
+    blank.value = ''; blank.textContent = '—';
+    sel.appendChild(blank);
+    UFS.forEach(function (u) {
+      var o = document.createElement('option');
+      o.value = u; o.textContent = u;
+      sel.appendChild(o);
+    });
+  });
+
+  document.getElementById('creaUf').value = 'ES';
+  document.getElementById('uf').value = 'ES';
+
+  /* Utilidades numéricas */
+  function parseNum(s) {
+    s = String(s || '').trim();
+    if (!s) return NaN;
+    if (s.indexOf(',') > -1) s = s.replace(/\./g, '').replace(',', '.');
+    return parseFloat(s);
+  }
+  function fmt(n, d) {
+    return n.toLocaleString('pt-BR', { minimumFractionDigits: d, maximumFractionDigits: d });
+  }
+  function maskCpf(v) {
+    var d = v.replace(/\D/g, '').slice(0, 11);
+    if (d.length <= 3) return d;
+    if (d.length <= 6) return d.slice(0, 3) + '.' + d.slice(3);
+    if (d.length <= 9) return d.slice(0, 3) + '.' + d.slice(3, 6) + '.' + d.slice(6);
+    return d.slice(0, 3) + '.' + d.slice(3, 6) + '.' + d.slice(6, 9) + '-' + d.slice(9);
+  }
+  function fmtDate(iso) {
+    if (!iso) return '';
+    var p = iso.split('-');
+    if (p.length !== 3) return '';
+    var d = new Date(Date.UTC(+p[0], +p[1] - 1, +p[2]));
+    return new Intl.DateTimeFormat('pt-BR', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' }).format(d);
+  }
+
+  /* Escreve valores nos campos do documento */
+  function paint(key, text) {
+    document.querySelectorAll('[data-f="' + key + '"]').forEach(function (el) {
+      el.textContent = text;
+    });
+  }
+  function el(k) { return document.querySelector('[data-k="' + k + '"]'); }
+
+  function recalc() {
+    var a = parseNum(el('areaReg').value);
+    var b = parseNum(el('areaApu').value);
+    if (isNaN(a) || isNaN(b)) {
+      el('sentido').value = ''; el('dif').value = ''; el('difpct').value = '';
+    } else {
+      var diff = Math.abs(b - a);
+      el('sentido').value = b > a ? 'a maior' : (b < a ? 'a menor' : '');
+      el('dif').value = fmt(diff, 4);
+      el('difpct').value = a > 0 ? fmt(diff / a * 100, 2) : '';
+    }
+    calcDirty = false;
+  }
+
+  function sync() {
+    inputs.forEach(function (inp) {
+      var k = inp.getAttribute('data-k');
+      values[k] = inp.value.trim();
+      if (k === 'data') paint('dataFmt', fmtDate(inp.value));
+      else if (k === 'difpct') paint(k, values[k] ? values[k].replace(/\s*%\s*$/, '') + '%' : '');
+      else paint(k, values[k]);
+    });
+  }
+
+  function setOption() {
+    p2.textContent = OPCAO[optSel.value];
+  }
+
+  /* Proprietários (CPF ou CNPJ, um ou vários) */
+  var owners = [{ tipo: 'CPF', nome: '', doc: '' }];
+
+  function maskCnpj(v) {
+    var d = v.replace(/\D/g, '').slice(0, 14);
+    if (d.length > 12) return d.slice(0, 2) + '.' + d.slice(2, 5) + '.' + d.slice(5, 8) + '/' + d.slice(8, 12) + '-' + d.slice(12);
+    if (d.length > 8) return d.slice(0, 2) + '.' + d.slice(2, 5) + '.' + d.slice(5, 8) + '/' + d.slice(8);
+    if (d.length > 5) return d.slice(0, 2) + '.' + d.slice(2, 5) + '.' + d.slice(5);
+    if (d.length > 2) return d.slice(0, 2) + '.' + d.slice(2);
+    return d;
+  }
+  function maskIncra(v) {
+    var d = v.replace(/\D/g, '').slice(0, 13);
+    var parts = [d.slice(0, 3), d.slice(3, 6), d.slice(6, 9), d.slice(9, 12)].filter(Boolean);
+    var out = parts.join('.');
+    if (d.length > 12) out += '-' + d.slice(12);
+    return out;
+  }
+  function maskDoc(tipo, v) { return tipo === 'CNPJ' ? maskCnpj(v) : maskCpf(v); }
+
+  function mk(tag, attrs, text) {
+    var e = document.createElement(tag);
+    if (attrs) Object.keys(attrs).forEach(function (a) { e.setAttribute(a, attrs[a]); });
+    if (text) e.textContent = text;
+    return e;
+  }
+  function fld(key, ph) { return mk('span', { 'class': 'fld', 'data-f': key, 'data-ph': ph }); }
+
+  function renderForm() {
+    var box = document.getElementById('ownersForm');
+    box.innerHTML = '';
+    owners.forEach(function (o, i) {
+      var card = mk('div', { 'class': 'owner' });
+      var head = mk('div', { 'class': 'owner-head' });
+      head.appendChild(mk('span', null, owners.length > 1 ? 'Proprietário ' + (i + 1) : 'Proprietário'));
+      if (owners.length > 1) {
+        var rm = mk('button', { 'class': 'btn light small', type: 'button', 'aria-label': 'Remover proprietário ' + (i + 1) }, 'Remover');
+        rm.addEventListener('click', function () { owners.splice(i, 1); renderForm(); renderDoc(); });
+        head.appendChild(rm);
+      }
+      card.appendChild(head);
+
+      var f1 = mk('div', { 'class': 'field' });
+      f1.appendChild(mk('label', { 'for': 'ownTipo' + i }, 'Tipo de documento'));
+      var sel = mk('select', { id: 'ownTipo' + i });
+      ['CPF', 'CNPJ'].forEach(function (t) {
+        var op = mk('option', { value: t }, t === 'CPF' ? 'CPF (pessoa física)' : 'CNPJ (pessoa jurídica)');
+        if (o.tipo === t) op.selected = true;
+        sel.appendChild(op);
+      });
+      sel.addEventListener('change', function () {
+        o.tipo = sel.value; o.doc = maskDoc(o.tipo, o.doc);
+        renderForm(); renderDoc();
+      });
+      f1.appendChild(sel); card.appendChild(f1);
+
+      var f2 = mk('div', { 'class': 'field' });
+      f2.appendChild(mk('label', { 'for': 'ownNome' + i }, o.tipo === 'CNPJ' ? 'Razão social' : 'Nome'));
+      var inNome = mk('input', { id: 'ownNome' + i, autocomplete: 'off' });
+      inNome.value = o.nome;
+      inNome.addEventListener('input', function () { o.nome = inNome.value; paint('pn' + i, o.nome.trim()); });
+      f2.appendChild(inNome); card.appendChild(f2);
+
+      var f3 = mk('div', { 'class': 'field' });
+      f3.appendChild(mk('label', { 'for': 'ownDoc' + i }, o.tipo));
+      var inDoc = mk('input', { id: 'ownDoc' + i, inputmode: 'numeric', autocomplete: 'off',
+        placeholder: o.tipo === 'CNPJ' ? '00.000.000/0000-00' : '000.000.000-00' });
+      inDoc.value = o.doc;
+      inDoc.addEventListener('input', function () {
+        inDoc.value = maskDoc(o.tipo, inDoc.value);
+        o.doc = inDoc.value; paint('pd' + i, o.doc.trim());
+      });
+      f3.appendChild(inDoc); card.appendChild(f3);
+
+      box.appendChild(card);
+    });
+  }
+
+  function renderDoc() {
+    var n = owners.length;
+    var intro = document.getElementById('ownIntro');
+    var sign = document.getElementById('ownSign');
+    if (!intro || !sign) return;
+    intro.innerHTML = ''; sign.innerHTML = '';
+    owners.forEach(function (o, i) {
+      if (i > 0) intro.appendChild(document.createTextNode(i === n - 1 ? ', e ' : ', '));
+      intro.appendChild(fld('pn' + i, '[NOME DO PROPRIETÁRIO]'));
+      intro.appendChild(document.createTextNode(', ' + o.tipo + ' nº '));
+      intro.appendChild(fld('pd' + i, '[' + o.tipo + ']'));
+
+      var blk = mk('div', { 'class': 'sign' });
+      blk.appendChild(mk('div', { 'class': 'line' }));
+      blk.appendChild(fld('pn' + i, '[NOME DO PROPRIETÁRIO]'));
+      blk.appendChild(mk('br'));
+      blk.appendChild(document.createTextNode(o.tipo + ': '));
+      blk.appendChild(fld('pd' + i, '[' + o.tipo + ']'));
+      blk.appendChild(mk('br'));
+      blk.appendChild(document.createTextNode('Proprietário'));
+      sign.appendChild(blk);
+    });
+    document.querySelectorAll('.pl').forEach(function (e) {
+      e.textContent = e.getAttribute(n > 1 ? 'data-p' : 'data-s');
+    });
+    owners.forEach(function (o, i) { paint('pn' + i, o.nome.trim()); paint('pd' + i, o.doc.trim()); });
+  }
+
+  document.getElementById('btnAddOwner').addEventListener('click', function () {
+    owners.push({ tipo: 'CPF', nome: '', doc: '' });
+    renderForm(); renderDoc();
+    var last = document.getElementById('ownNome' + (owners.length - 1));
+    if (last) last.focus();
+  });
+
+  /* Eventos */
+  inputs.forEach(function (inp) {
+    var k = inp.getAttribute('data-k');
+    var handler = function () {
+      if (k === 'sncr') inp.value = maskIncra(inp.value);
+      if (k === 'areaReg' || k === 'areaApu') recalc();
+      sync();
+    };
+    inp.addEventListener('input', handler);
+    inp.addEventListener('change', handler);
+  });
+
+  optSel.addEventListener('change', setOption);
+
+  Array.prototype.forEach.call(document.querySelectorAll('[data-copy]'), function (btn) {
+    var label = btn.textContent;
+    btn.addEventListener('click', function () {
+      var text = document.getElementById(btn.getAttribute('data-copy')).innerText.trim();
+      function ok() {
+        btn.textContent = 'Copiado!';
+        statusEl.textContent = 'Texto copiado para a área de transferência.';
+        setTimeout(function () { btn.textContent = label; }, 1600);
+      }
+      function fallback() {
+        var ta = document.createElement('textarea');
+        ta.value = text; document.body.appendChild(ta); ta.select();
+        try { document.execCommand('copy'); ok(); } catch (e) { statusEl.textContent = 'Não foi possível copiar. Selecione o texto e use Ctrl+C.'; }
+        document.body.removeChild(ta);
+      }
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).then(ok, fallback);
+      } else { fallback(); }
+    });
+  });
+
+  document.getElementById('btnClear').addEventListener('click', function () {
+    if (!confirm('Apagar todos os campos e restaurar o texto original dos documentos?')) return;
+    inputs.forEach(function (inp) { if (inp.getAttribute('data-k') !== 'data') inp.value = ''; });
+    el('resp').value = 'Ítalo José Zago de Souza Filho';
+    el('titulo').value = 'Engenheiro Agrimensor';
+    el('creaUf').value = 'ES';
+    el('uf').value = 'ES';
+    el('creaNum').value = '013008/D';
+    el('incra').value = 'ERO';
+    owners = [{ tipo: 'CPF', nome: '', doc: '' }];
+    renderForm();
+    optSel.value = '1';
+    setDefaultDate();
+    location.reload ? restoreDocs() : null;
+  });
+
+  /* Guarda o HTML original para o botão "Limpar tudo" restaurar edições manuais */
+  var original = {
+    laudo: document.getElementById('laudo').innerHTML,
+    declaracao: document.getElementById('declaracao').innerHTML
+  };
+  function restoreDocs() {
+    document.getElementById('laudo').innerHTML = original.laudo;
+    document.getElementById('declaracao').innerHTML = original.declaracao;
+    p2 = document.getElementById('p2');
+    setOption();
+    renderDoc();
+    sync();
+    statusEl.textContent = 'Campos limpos e texto original restaurado.';
+  }
+
+  function setDefaultDate() {
+    var t = new Date();
+    var m = String(t.getMonth() + 1).padStart(2, '0');
+    var d = String(t.getDate()).padStart(2, '0');
+    el('data').value = t.getFullYear() + '-' + m + '-' + d;
+  }
+
+  /* Início */
+  setDefaultDate();
+  setOption();
+  sync();
+  renderForm();
+  renderDoc();
+})();
+</script>
+</body>
+</html>

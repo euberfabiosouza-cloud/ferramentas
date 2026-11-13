@@ -82,8 +82,8 @@ pre { margin: 0; padding: 14px 16px; white-space: pre-wrap; word-break: break-wo
     <h2>Resultado para copiar</h2>
     <div class="bar">
       <button class="btn primary" id="copy">Copiar resultado</button>
-      <label><input type="checkbox" id="optM2" checked> Incluir m²</label>
-      <label><input type="checkbox" id="optAlq" checked> Incluir alqueire</label>
+      <label><input type="checkbox" id="optM2"> Incluir m²</label>
+      <label><input type="checkbox" id="optAlq"> Incluir alqueire</label>
       <label>Alqueire:
         <select id="alq">
           <option value="48400" selected>4,84 ha (geométrico / mineiro)</option>
@@ -112,8 +112,6 @@ const CONFIG = [
     cols: [['Matrícula(s)', 'text'], ['Área (ha)', 'num']] },
   { key: 'sub', title: 'Áreas subtraídas da matrícula',
     cols: [['Nome da área', 'text'], ['Área (ha)', 'num']] },
-  { key: 'cert', title: 'Certificação',
-    cols: [['Parcela', 'text'], ['Área (SGL)', 'num'], ['Perímetro (m)', 'num'], ['Código de Certificação', 'text']] },
   { key: 'lev', title: 'Áreas levantadas (exceto as parcelas)',
     cols: [['Nome da área', 'text'], ['Área (ha)', 'num']] }
 ];
@@ -126,12 +124,6 @@ const EXEMPLO = {
     ['Averbação nº 08/33.217 - Área "H-2"', '5,8069'],
     ['Registro nº 09/33.217 - Imissão Provisória de Posse', '4,8584'],
     ['Averbação nº 10/33.217 - Desapropriação em favor da União', '0,3049']
-  ],
-  cert: [
-    ['Parcela 01', '143,4241', '6.182,12', '407de6c0-3b7c-480c-a2cf-dcd7ba2cea0f'],
-    ['Parcela 02', '64,1739', '4.325,49', 'd9b09c52-a2ed-40b7-8b4c-8b7804059c9a'],
-    ['Parcela 03', '23,4225', '2.170,47', 'f6d06f45-5f4c-4d66-9438-689458280093'],
-    ['Parcela 04', '146,3771', '6.680,97', '8225cfb8-cf34-4350-8878-72dafc377709']
   ],
   lev: [['Estrada Municipal', '4,2173']]
 };

@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="color-scheme" content="light dark">
 <title>Ajuste PPP · Ferramentas</title>
-<meta name="description" content="Ajuste PPP: corrige pontos coletados com NTRIP usando a coordenada PPP-IBGE da base. Roda no navegador.">
+<meta name="description" content="Ajuste PPP: corrige pontos coletados usando a coordenada PPP-IBGE da base. Roda no navegador.">
 <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -102,7 +102,7 @@ tr.base td.corr { background: var(--hl); font-weight: 500; }
     <div class="top-main">
       <div>
         <h1>Ajuste PPP</h1>
-        <p class="lead">Corrige os pontos coletados com NTRIP somando a diferença entre a coordenada PPP-IBGE da base e a coordenada observada dela. Tudo roda no navegador, sem enviar nem guardar nada.</p>
+        <p class="lead">Corrige os pontos coletados somando a diferença entre a coordenada PPP-IBGE da base e a coordenada observada dela. Tudo roda no navegador, sem enviar nem guardar nada.</p>
       </div>
     </div>
   </div>
@@ -517,7 +517,7 @@ function download(kind) {
   const blob = new Blob([bytes], { type: 'text/plain' });
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
-  a.download = (kind === 'corr' ? 'PONTOS-CORRIGIDOS-' : 'PONTOS-NTRIP-') + today() + '.txt';
+  a.download = (kind === 'corr' ? 'PONTOS-CORRIGIDOS-' : 'PONTOS-BRUTOS-') + today() + '.txt';
   document.body.appendChild(a);
   a.click();
   a.remove();

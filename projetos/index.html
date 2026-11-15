@@ -86,7 +86,8 @@ dialog[open] { animation: pop .16s ease-out; }
 .pastabox { background: var(--bg); border: 1px solid var(--line-strong); border-radius: 6px; padding: 10px 12px; display: grid; gap: 8px; }
 .pastabox .lbl { font-size: 13px; color: var(--muted); font-weight: 600; }
 .pastabox .row { display: flex; gap: 10px; align-items: center; justify-content: space-between; }
-.pastabox .val { flex: 1; font-family: var(--mono); font-size: 14px; word-break: break-all; color: var(--ink); }
+.pastabox .val { flex: 1; min-width: 0; font-family: var(--mono); font-size: 14px; word-break: break-all; color: var(--ink); }
+.pastabox .row .btn { flex: none; }
 label, fieldset legend { display: grid; gap: 5px; font-weight: 600; font-size: 14px; }
 fieldset { border: 0; margin: 0; padding: 0; }
 fieldset legend { padding: 0; margin-bottom: 5px; }
@@ -193,9 +194,10 @@ small.hint.warn { color: var(--accent-text); }
     <div class="dlg-body">
       <div class="idprev"><span class="lbl">ID do projeto</span><span class="tag" id="idPreview"></span></div>
       <div class="pastabox" id="fpPastaBox" hidden>
+        <span class="lbl">Nome da pasta</span>
         <div class="row">
-          <span class="lbl">Nome da pasta</span>
-          <button type="button" class="btn small copy" id="fpPastaCopy">Copiar nome da pasta</button>
+          <span class="val" id="fpPastaVal"></span>
+          <button type="button" class="btn small copy" id="fpPastaCopy">Copiar</button>
         </div>
       </div>
       <label>Cliente
@@ -265,9 +267,10 @@ small.hint.warn { color: var(--accent-text); }
   </div>
   <div class="dlg-body">
     <div class="pastabox">
+      <span class="lbl">Nome da pasta</span>
       <div class="row">
-        <span class="lbl">Nome da pasta</span>
-        <button type="button" class="btn small copy" id="dsCopy">Copiar pasta</button>
+        <span class="val" id="dsVal"></span>
+        <button type="button" class="btn small copy" id="dsCopy">Copiar</button>
       </div>
     </div>
   </div>
@@ -557,6 +560,7 @@ function openProjeto(row) {
   $('fpDel').hidden = !p;
   $('fpPastaBox').hidden = !(p && p.pasta);
   $('fpPastaCopy').dataset.copy = p ? (p.pasta || '') : '';
+  $('fpPastaVal').textContent = p ? (p.pasta || '') : '';
   $('dlClientes').innerHTML = clientes().map(c => `<option value="${esc(c.nome)}"></option>`).join('');
 
   const hoje = new Date();
@@ -623,6 +627,7 @@ async function saveProjeto(ev) {
     const novo = projetos().find(p => !antes.has(p.row));
     if (novo && novo.pasta) {
       $('dsCopy').dataset.copy = novo.pasta;
+      $('dsVal').textContent = novo.pasta;
       $('dlgSalvo').showModal();
     }
   });
